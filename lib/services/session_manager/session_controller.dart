@@ -1,9 +1,9 @@
-import 'dart:convert'; // Importing dart:convert for JSON encoding and decoding
+import 'dart:convert';
 
-import 'package:flutter/material.dart'; // Importing Flutter material library
+import 'package:flutter/foundation.dart';
 
-import '../../model/user/user_model.dart'; // Importing the user model for user data
-import '../storage/local_storage.dart'; // Importing local storage for storing user data
+import '../../model/user/user_model.dart';
+import '../storage/local_storage.dart';
 
 /// A singleton class for managing user session data.
 class SessionController {
@@ -36,12 +36,9 @@ class SessionController {
   }
 
   /// Saves user data into the local storage.
-  ///
-  /// Takes a [user] object as input and saves it into the local storage.
-  Future<void> saveUserInPreference(dynamic user) async {
-    sharedPreferenceClass.setValue('token', jsonEncode(user));
-    // Storing value to check login
-    sharedPreferenceClass.setValue('isLogin', 'true');
+  Future<void> saveUserInPreference(UserModel user) async {
+    await sharedPreferenceClass.setValue('token', jsonEncode(user.toJson()));
+    await sharedPreferenceClass.setValue('isLogin', 'true');
   }
 
   /// Retrieves user data from the local storage.
@@ -50,15 +47,17 @@ class SessionController {
   /// to be used across the app.
   Future<void> getUserFromPreference() async {
     try {
-      String userData = await sharedPreferenceClass.readValue('token');
-      var isLogin = await sharedPreferenceClass.readValue('isLogin');
-
-      if (userData.isNotEmpty) {
-        // SessionController.user = UserModel.fromJson(jsonDecode(userData));
+      final dynamic rawToken = await sharedPreferenceClass.readValue('token');
+      final dynamic rawLogin = await sharedPreferenceClass.readValue('isLogin');
+      final bool hasToken = rawToken != null && rawToken.toString().isNotEmpty;
+      final bool markedLoggedIn = rawLogin?.toString() == 'true';
+      SessionController.isLogin = markedLoggedIn && hasToken;
+    } catch (e, st) {
+      SessionController.isLogin = false;
+      if (kDebugMode) {
+        debugPrint('getUserFromPreference failed: $e');
+        debugPrintStack(stackTrace: st);
       }
-      SessionController.isLogin = isLogin == 'true' ? true : false;
-    } catch (e) {
-      debugPrint(e.toString());
     }
   }
 }

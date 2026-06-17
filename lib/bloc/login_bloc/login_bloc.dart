@@ -1,11 +1,9 @@
-import 'dart:async';
-
 import 'package:bloc/bloc.dart';
-import 'package:hr_app/data/response/api_response.dart';
 import 'package:equatable/equatable.dart';
-
-import '../../repository/auth_api/auth_api_repository.dart';
-import '../../services/session_manager/session_controller.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hr_app/data/response/api_response.dart';
+import 'package:hr_app/repository/auth_api/auth_api_repository.dart';
+import 'package:hr_app/services/session_manager/session_controller.dart';
 part 'login_events.dart';
 part 'login_states.dart';
 
@@ -30,27 +28,27 @@ class LoginBloc extends Bloc<LoginEvents, LoginStates> {
     LoginApi event,
     Emitter<LoginStates> emit,
   ) async {
-    Map<String, String> data = {
+    final Map<String, String> data = {
       'email': state.email,
       'password': state.password,
     };
     emit(state.copyWith(loginApi: const ApiResponse.loading()));
 
-    // await authApiRepository
-    //     .loginApi(data)
-    //     .then((value) async {
-    //       if (value.error.isNotEmpty) {
-    //         emit(state.copyWith(loginApi: ApiResponse.error(value.error)));
-    //       } else {
-    //         await SessionController().saveUserInPreference(value);
-    //         await SessionController().getUserFromPreference();
-    //         emit(
-    //           state.copyWith(loginApi: const ApiResponse.completed('lOGIN')),
-    //         );
-    //       }
-    //     })
-    //     .onError((error, stackTrace) {
-    //       emit(state.copyWith(loginApi: ApiResponse.error(error.toString())));
-    //     });
+    try {
+      final value = await authApiRepository.loginApi(data);
+      if (value.error.isNotEmpty) {
+        emit(state.copyWith(loginApi: ApiResponse.error(value.error)));
+        return;
+      }
+      await SessionController().saveUserInPreference(value);
+      await SessionController().getUserFromPreference();
+      emit(state.copyWith(loginApi: const ApiResponse.completed('LOGIN')));
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('Login failed: $e');
+        debugPrintStack(stackTrace: st);
+      }
+      emit(state.copyWith(loginApi: ApiResponse.error(e.toString())));
+    }
   }
 }

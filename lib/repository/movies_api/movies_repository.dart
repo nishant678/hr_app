@@ -1,4 +1,5 @@
 /// This file exports the necessary classes related to movies API repositories.
+library;
 
 export 'movies_api_repository.dart';
 export 'movies_http_api_repository.dart';

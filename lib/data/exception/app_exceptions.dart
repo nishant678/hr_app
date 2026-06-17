@@ -1,7 +1,7 @@
 /// Base class for custom application exceptions.
 class AppException implements Exception {
-  final _message; // Message associated with the exception
-  final _prefix; // Prefix for the exception
+  final Object? _message;
+  final Object? _prefix;
 
   /// Constructor for creating an [AppException] instance.
   ///

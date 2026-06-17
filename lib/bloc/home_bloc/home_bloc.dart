@@ -15,12 +15,7 @@ class HomeBloc extends Bloc<HomeEvents, HomeStates> {
     Emitter<HomeStates> emit,
   ) async {
     emit(state.copyWith(isLoading: true));
-    
-    // Simulate API call or data loading
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // In a real app, you would fetch data from a repository
-    // For now, using mock data
+    await Future<void>.delayed(Duration.zero);
     emit(
       state.copyWith(
         isLoading: false,
@@ -37,11 +32,7 @@ class HomeBloc extends Bloc<HomeEvents, HomeStates> {
     Emitter<HomeStates> emit,
   ) async {
     emit(state.copyWith(isLoading: true));
-    
-    // Simulate API call or data loading
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // In a real app, you would fetch data from a repository
+    await Future<void>.delayed(Duration.zero);
     emit(
       state.copyWith(
         isLoading: false,
@@ -53,4 +44,5 @@ class HomeBloc extends Bloc<HomeEvents, HomeStates> {
     );
   }
 }
+
 

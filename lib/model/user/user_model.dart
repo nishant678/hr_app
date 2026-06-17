@@ -1,18 +1,27 @@
-// import 'package:freezed_annotation/freezed_annotation.dart'; // Importing freezed_annotation package
+/// Authentication payload returned from the login API.
+class UserModel {
+  const UserModel({
+    this.token = '',
+    this.error = '',
+  });
 
-// part 'user_model.freezed.dart'; // Importing generated code for Freezed class
-// part 'user_model.g.dart'; // Importing generated code for JSON serialization
+  final String token;
+  final String error;
 
-// /// Freezed class representing a user model.
-// @freezed
-// class UserModel with _$UserModel {
-//   /// Factory constructor for creating a [UserModel] instance.
-//   factory UserModel({
-//     @Default('') String token, // User token
-//     @Default('') String error, // Error message
-//   }) = _UserModel; // Constructor for the freezed class
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      token: _readString(json['token']),
+      error: _readString(json['error'] ?? json['message']),
+    );
+  }
 
-//   /// Factory constructor for creating a [UserModel] instance from JSON.
-//   factory UserModel.fromJson(Map<String, dynamic> json) =>
-//       _$UserModelFromJson(json); // JSON deserialization method
-// }
+  Map<String, dynamic> toJson() => {
+        'token': token,
+        'error': error,
+      };
+
+  static String _readString(Object? value) {
+    if (value == null) return '';
+    return value.toString();
+  }
+}

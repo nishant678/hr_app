@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:hr_app/data/network/base_api_services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/http.dart';
 
 import '../exception/app_exceptions.dart';
 
@@ -52,10 +51,32 @@ class NetworkApiService implements BaseApiServices {
 
     dynamic responseJson;
     try {
-      final Response response = await post(
-        Uri.parse(url),
-        body: data,
-      ).timeout(const Duration(seconds: 10));
+      final Map<String, String>? headers;
+      final Object body;
+      if (data is String) {
+        body = data;
+        headers = const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+      } else if (data is Map) {
+        body = jsonEncode(data);
+        headers = const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+      } else {
+        body = data.toString();
+        headers = null;
+      }
+
+      final http.Response response = await http
+          .post(
+            Uri.parse(url),
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 10));
       responseJson = returnResponse(response);
     } on SocketException {
       throw NoInternetException('No Internet Connection');

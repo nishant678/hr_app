@@ -2,8 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hr_app/bloc/home_bloc/home_bloc.dart';
-import 'package:hr_app/configs/color/color.dart';
+import 'package:hr_app/configs/components/design/spec_shadows.dart';
+import 'package:hr_app/configs/theme/app_colors.dart';
+import 'package:hr_app/configs/theme/app_dimensions.dart';
+import 'package:hr_app/configs/theme/app_text_styles.dart';
+import 'package:hr_app/view/attendance/attendance_screen.dart';
+import 'package:hr_app/view/expense/expense_screen.dart';
+import 'package:hr_app/view/face_checkin/face_check_in_screen.dart';
+import 'package:hr_app/view/leave/apply_leave_screen.dart';
 
+/// Home dashboard matched to **second** reference screenshot (colors, layout, icons, grouped summary cards).
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,199 +29,30 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.whiteColor,
-      body: Container(
-        color: AppColors.blackColor,
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _topHeader(),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        child: Text(
-                          "Welcome Refreshing Monday",
-                          style: TextStyle(
-                            color: AppColors.whiteColor,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        child: Text(
-                          "Great companies are built by great people.",
-                          style: TextStyle(
-                            color: AppColors.whiteColor,
-                            fontSize: 15.sp,
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 20.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.backgroundColor,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(20.r),
-                            topRight: Radius.circular(20.r),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            SizedBox(height: 7.h),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "Today's Overview",
-                                    style: TextStyle(
-                                      fontSize: 15.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  Icon(Icons.more_horiz, color: Colors.black),
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: 7.h),
-                            _overviewCard(),
-                            const SizedBox(height: 20),
-                            BlocBuilder<HomeBloc, HomeStates>(
-                              builder: (context, state) {
-                                if (state.isLoading) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(20.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-                                return _statsGrid(state);
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                            _todayList(),
-                            const SizedBox(height: 20),
-                            _timeTrack(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _topHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 22,
-            backgroundImage: NetworkImage("https://i.pravatar.cc/300"),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                "Wade Warren",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "Human Resource Manager",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xff1E1E1E),
-            ),
-            child: const Icon(Icons.notifications, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _overviewCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xff7A5CFA), Color(0xff9F7BFF)],
-          ),
-          borderRadius: BorderRadius.circular(24),
-        ),
+      backgroundColor: AppColors.background,
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
-                Text("3 May, 2024", style: TextStyle(color: Colors.white70)),
-                Spacer(),
-                Text("8:45 AM", style: TextStyle(color: Colors.white70)),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                _clockBox("Clock In", "08.00 AM"),
-                const SizedBox(width: 12),
-                _clockBox("Clock Out", "05.00 PM"),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _clockBox(String title, String time) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Text(title, style: const TextStyle(color: Colors.white70)),
-            const SizedBox(height: 6),
-            Text(
-              time,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            _buildHeader(),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppDimensions.paddingL,
+                AppDimensions.paddingL,
+                AppDimensions.paddingL,
+                AppDimensions.paddingXXL,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildClockInCard(),
+                  SizedBox(height: AppDimensions.paddingXXL),
+                  _buildQuickActions(),
+                  SizedBox(height: AppDimensions.paddingXXL),
+                  _buildFirstSummaryCard(),
+                  SizedBox(height: AppDimensions.paddingL),
+                  _buildSecondSummaryCard(),
+                ],
               ),
             ),
           ],
@@ -222,92 +61,163 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _statsGrid(HomeStates state) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      child: GridView.count(
-        crossAxisCount: 2,
-        childAspectRatio: 2,
-        shrinkWrap: true,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 12,
-        physics: const NeverScrollableScrollPhysics(),
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        AppDimensions.paddingL,
+        52.h,
+        AppDimensions.paddingL,
+        24.h,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.dashboardHeaderBlue,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _statTile(
-            "Total Employee",
-            state.totalEmployees.toString(),
-            AppColors.iconBoxColor1,
-            AppColors.color1,
-            AppColors.lightBlackColor,
-            AppColors.blackColor,
+          CircleAvatar(
+            radius: 24.r,
+            backgroundImage: const AssetImage('assets/profile_icon.png'),
           ),
-          _statTile(
-            "Total Present",
-            state.totalPresent.toString(),
-            AppColors.iconBoxColor2,
-            AppColors.color3,
-            AppColors.lightBlackColor,
-            AppColors.blackColor,
+          SizedBox(width: AppDimensions.paddingM),
+          Expanded(
+            child: Text(
+              'Welcome, Amit Sharma',
+              style: AppTextStyles.h3.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-          _statTile(
-            "Total Late",
-            state.totalLate.toString(),
-            AppColors.iconBoxColor3,
-            AppColors.color2,
-            AppColors.lightBlackColor,
-            AppColors.blackColor,
-          ),
-          _statTile(
-            "Total Leave",
-            state.totalLeave.toString(),
-            AppColors.iconBoxColor4,
-            AppColors.color2,
-            AppColors.lightBlackColor,
-            AppColors.blackColor,
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            icon: Icon(
+              Icons.interests_outlined,
+              color: AppColors.white,
+              size: 22.sp,
+            ),
+            onPressed: () {},
           ),
         ],
       ),
     );
   }
 
-  Widget _statTile(
-    String title,
-    String value,
-    Color color,
-    Color color1,
-    Color lightBlackColor,
-    Color blackColor,
-  ) {
+  Widget _buildClockInCard() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: color1,
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.dashboardClockCardBlue,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: SpecShadows.card,
       ),
+      padding: EdgeInsets.all(AppDimensions.paddingL),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              CircleAvatar(
-                backgroundColor: color.withOpacity(0.2),
-                child: Icon(Icons.people, color: color),
+              Expanded(
+                child: Text(
+                  'Clock-In Today:',
+                  style: AppTextStyles.bodyM.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.92),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              SizedBox(width: 7.w),
+              SizedBox(width: 8.w),
+              Text(
+                '9:15 AM',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50.h,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+                      final verified = await navigator.push<bool>(
+                        MaterialPageRoute<bool>(
+                          builder: (_) => const FaceCheckInScreen(),
+                        ),
+                      );
+                      if (!mounted) return;
+                      if (verified == true) {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Face verify ho gaya — clock-in record kiya gaya / Face verified — clock-in recorded',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.dashboardClockInGreen,
+                      foregroundColor: AppColors.white,
+                      elevation: 0,
+                      shape: const StadiumBorder(),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, size: 22.sp, color: AppColors.white),
+                        SizedBox(width: 6.w),
+                        Text(
+                          'CLOCK IN',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.sp,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12.w),
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    title,
-                    style: TextStyle(color: lightBlackColor, fontSize: 14.sp),
+                    'On time',
+                    style: AppTextStyles.bodyS.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.75),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                  SizedBox(height: 6.h),
+                  CircleAvatar(
+                    radius: 18.r,
+                    backgroundColor: const Color(0xFF8FA8C4),
+                    child: Icon(
+                      Icons.person,
+                      color: AppColors.white,
+                      size: 20.sp,
                     ),
                   ),
                 ],
@@ -319,134 +229,267 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _todayList() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.whiteColor,
-        borderRadius: BorderRadius.circular(10.r),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            child: Row(
-              children: [
-                Text(
-                  "What’s up Today",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Spacer(),
-                Text("See All", style: TextStyle(color: Colors.deepPurple)),
-              ],
+  Widget _buildQuickActions() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _quickCard(
+            circularIcon: true,
+            icon: Icons.check,
+            iconBg: AppColors.dashboardClockInGreen.withValues(alpha: 0.18),
+            iconColor: AppColors.dashboardClockInGreen,
+            label: 'Attendance',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => const AttendanceScreen(),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          for (int i = 0; i < 2; i++)
-            Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(bottom: 3.h),
-                  child: _todayItem(
-                    "Motion Designer Interview",
-                    "12:00 PM - 01:00 PM",
-                    "more",
-                  ),
-                ),
-                if (i < 1) Divider(thickness: 0.8),
-              ],
+        ),
+        SizedBox(width: AppDimensions.paddingM),
+        Expanded(
+          child: _quickCard(
+            circularIcon: false,
+            icon: Icons.folder_copy_outlined,
+            iconBg: AppColors.dashboardQuickLeaveOrange.withValues(alpha: 0.15),
+            iconColor: AppColors.dashboardQuickLeaveOrange,
+            label: 'Leave',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => const ApplyLeaveScreen(),
+              ),
             ),
-        ],
-      ),
+          ),
+        ),
+        SizedBox(width: AppDimensions.paddingM),
+        Expanded(
+          child: _quickCard(
+            circularIcon: false,
+            icon: Icons.beach_access_outlined,
+            iconBg: AppColors.dashboardQuickExpenseCoral.withValues(alpha: 0.15),
+            iconColor: AppColors.dashboardQuickExpenseCoral,
+            label: 'Expense',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => const ExpenseScreen(),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _todayItem(String title, String time, String text3) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      child: SizedBox(
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today, color: Colors.deepPurple),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _quickCard({
+    required bool circularIcon,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    final iconBox = Container(
+      width: circularIcon ? 52.w : null,
+      height: circularIcon ? 52.w : null,
+      padding: circularIcon ? null : EdgeInsets.all(12.w),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: iconBg,
+        shape: circularIcon ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: circularIcon ? null : BorderRadius.circular(12.r),
+      ),
+      child: Icon(icon, color: iconColor, size: circularIcon ? 26.sp : 26.sp),
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16.r),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: SpecShadows.card,
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
+            child: Column(
               children: [
-                Text(title, style: const TextStyle(color: Colors.black)),
-                Text(time, style: const TextStyle(color: Colors.grey)),
+                iconBox,
+                SizedBox(height: 10.h),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.labelM.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ],
             ),
-            const Spacer(),
-            text3 == "more"
-                ? const Icon(Icons.more_horiz, color: Colors.grey)
-                : Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: Text(
-                      text3,
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _timeTrack() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.whiteColor,
-        borderRadius: BorderRadius.circular(10.r),
+  Widget _buildFirstSummaryCard() {
+    return _SummaryCardShell(
+      trailingHeader: Icon(
+        Icons.favorite_border,
+        color: AppColors.textSecondary,
+        size: 22.sp,
       ),
-      padding: const EdgeInsets.all(16),
+      children: [
+        _summaryDivider(),
+        _summaryRow(
+          leading: _squareIcon(Icons.login, AppColors.dashboardClockInGreen),
+          title: 'Clock-In',
+          trailing: '9:15 AM',
+        ),
+        _summaryDivider(),
+        _summaryRow(
+          leading: _squareIcon(
+            Icons.arrow_downward,
+            AppColors.dashboardQuickLeaveOrange,
+          ),
+          title: 'Half Day Leave',
+          trailing: 'Mon',
+        ),
+        _summaryDivider(),
+        _summaryRow(
+          leading: _squareIcon(
+            Icons.payments,
+            AppColors.white,
+            background: AppColors.dashboardClockCardBlue,
+          ),
+          title: 'Travel Expense',
+          trailing: '\$50.00',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecondSummaryCard() {
+    return _SummaryCardShell(
+      trailingHeader: const SizedBox.shrink(),
+      children: [
+        _summaryDivider(),
+        _summaryRow(
+          leading: _squareIcon(
+            Icons.assignment_outlined,
+            AppColors.dashboardClockInGreen,
+          ),
+          title: 'Today',
+          trailing: '9:15 AM',
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryDivider() {
+    return Divider(height: 1, thickness: 1, color: AppColors.divider);
+  }
+
+  Widget _squareIcon(
+    IconData icon,
+    Color iconColor, {
+    Color? background,
+  }) {
+    final bg = background ?? iconColor.withValues(alpha: 0.15);
+    return Container(
+      width: 40.w,
+      height: 40.w,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Icon(icon, color: iconColor, size: 20.sp),
+    );
+  }
+
+  Widget _summaryRow({
+    required Widget leading,
+    required String title,
+    required String trailing,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppDimensions.paddingM,
+        vertical: 12.h,
+      ),
+      child: Row(
+        children: [
+          leading,
+          SizedBox(width: AppDimensions.paddingM),
+          Expanded(
+            child: Text(
+              title,
+              style: AppTextStyles.labelL.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Text(
+            trailing,
+            style: AppTextStyles.labelL.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryCardShell extends StatelessWidget {
+  const _SummaryCardShell({
+    required this.trailingHeader,
+    required this.children,
+  });
+
+  final Widget trailingHeader;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: SpecShadows.card,
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            padding: EdgeInsets.fromLTRB(
+              AppDimensions.paddingM,
+              14.h,
+              AppDimensions.paddingM,
+              10.h,
+            ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "In-Time Tracking",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  "Today's Summary",
+                  style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700),
                 ),
-                Spacer(),
-                Text("See All", style: TextStyle(color: Colors.deepPurple)),
+                trailingHeader,
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          for (int i = 0; i < 2; i++)
-            Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(bottom: 3.h),
-                  child: _todayItem(
-                    "Brigette Whopper",
-                    "Marketing Officer",
-                    "07:48 AM",
-                  ),
-                ),
-                if (i < 1) Divider(thickness: 0.8),
-              ],
-            ),
+          ...children,
         ],
       ),
     );
