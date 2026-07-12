@@ -14,7 +14,7 @@ class AuthHttpApiRepository implements AuthApiRepository {
   @override
   Future<UserModel> loginApi(dynamic data) async {
     final dynamic response =
-        await _apiServices.postApi(AppUrl.loginEndPint, data);
+        await _apiServices.postApi(AppUrl.loginEndPoint, data);
     if (response is Map<String, dynamic>) {
       return UserModel.fromJson(response);
     }

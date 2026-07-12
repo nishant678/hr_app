@@ -90,9 +90,16 @@ class NetworkApiService implements BaseApiServices {
     return responseJson;
   }
 
-  /// Parses the [response] and returns the corresponding JSON data.
-  ///
-  /// Throws a [FetchDataException] with the appropriate error message if the response status code is not successful.
+  dynamic _parseError(http.Response response) {
+    try {
+      final json = jsonDecode(response.body);
+      if (json is Map && json.containsKey('error')) {
+        return json;
+      }
+    } catch (_) {}
+    return {'error': response.body};
+  }
+
   dynamic returnResponse(http.Response response) {
     if (kDebugMode) {
       print(response.statusCode);
@@ -100,20 +107,15 @@ class NetworkApiService implements BaseApiServices {
 
     switch (response.statusCode) {
       case 200:
-        dynamic responseJson = jsonDecode(response.body);
-        return responseJson;
+        return jsonDecode(response.body);
       case 400:
-        dynamic responseJson = jsonDecode(response.body);
-        return responseJson;
+        return jsonDecode(response.body);
       case 401:
-        throw BadRequestException(response.body.toString());
-      case 500:
       case 404:
-        throw UnauthorisedException(response.body.toString());
+      case 500:
+        return _parseError(response);
       default:
-        throw FetchDataException(
-          'Error occurred while communicating with server',
-        );
+        return {'error': 'Error occurred while communicating with server'};
     }
   }
 }

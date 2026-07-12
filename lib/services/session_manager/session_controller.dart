@@ -1,63 +1,81 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 
 import '../../model/user/user_model.dart';
 import '../storage/local_storage.dart';
 
-/// A singleton class for managing user session data.
 class SessionController {
-  /// Instance of [LocalStorage] for accessing local storage.
-  final LocalStorage sharedPreferenceClass = LocalStorage();
+  final LocalStorage storage = LocalStorage();
 
-  /// Singleton instance of [SessionController].
   static final SessionController _session = SessionController._internal();
 
-  /// Flag indicating whether the user is logged in or not.
   static bool? isLogin;
+  static String? token;
+  static String? email;
+  static String? role;
+  static int? userId;
+  static int? companyId;
 
-  /// Model representing the user data.
-  // static UserModel user = UserModel();
-
-  /// Private constructor for creating the singleton instance of [SessionController].
   SessionController._internal() {
-    // Initialize default values
     isLogin = false;
   }
 
-  //In Dart, a factory constructor is a special kind of constructor that can return an instance of the class,
-  // potentially a cached or pre-existing instance, instead of always creating a new one.
-  // It's defined using the factory keyword.
-  // This is useful for implementing patterns like singletons or when you want to control instance creat
-  //
-  /// Factory constructor for accessing the singleton instance of [SessionController].
   factory SessionController() {
     return _session;
   }
 
-  /// Saves user data into the local storage.
   Future<void> saveUserInPreference(UserModel user) async {
-    await sharedPreferenceClass.setValue('token', jsonEncode(user.toJson()));
-    await sharedPreferenceClass.setValue('isLogin', 'true');
+    token = user.token;
+    email = user.email;
+    role = user.role;
+    userId = user.id;
+    companyId = user.companyId;
+    await storage.setValue('token', user.token);
+    await storage.setValue('email', user.email);
+    await storage.setValue('role', user.role);
+    await storage.setValue('userId', user.id.toString());
+    if (user.companyId != null) {
+      await storage.setValue('companyId', user.companyId.toString());
+    }
+    await storage.setValue('isLogin', 'true');
+    isLogin = true;
   }
 
-  /// Retrieves user data from the local storage.
-  ///
-  /// Retrieves user data from the local storage and assigns it to the session controller
-  /// to be used across the app.
   Future<void> getUserFromPreference() async {
     try {
-      final dynamic rawToken = await sharedPreferenceClass.readValue('token');
-      final dynamic rawLogin = await sharedPreferenceClass.readValue('isLogin');
-      final bool hasToken = rawToken != null && rawToken.toString().isNotEmpty;
-      final bool markedLoggedIn = rawLogin?.toString() == 'true';
-      SessionController.isLogin = markedLoggedIn && hasToken;
+      final t = await storage.readValue('token');
+      final e = await storage.readValue('email');
+      final r = await storage.readValue('role');
+      final uid = await storage.readValue('userId');
+      final cid = await storage.readValue('companyId');
+      final login = await storage.readValue('isLogin');
+
+      token = t?.toString() ?? '';
+      email = e?.toString() ?? '';
+      role = r?.toString() ?? '';
+      userId = int.tryParse(uid?.toString() ?? '');
+      companyId = int.tryParse(cid?.toString() ?? '');
+      isLogin = login?.toString() == 'true' && token!.isNotEmpty;
     } catch (e, st) {
-      SessionController.isLogin = false;
+      isLogin = false;
       if (kDebugMode) {
         debugPrint('getUserFromPreference failed: $e');
         debugPrintStack(stackTrace: st);
       }
     }
+  }
+
+  Future<void> clearSession() async {
+    await storage.clearValue('token');
+    await storage.clearValue('email');
+    await storage.clearValue('role');
+    await storage.clearValue('userId');
+    await storage.clearValue('companyId');
+    await storage.clearValue('isLogin');
+    token = null;
+    email = null;
+    role = null;
+    userId = null;
+    companyId = null;
+    isLogin = false;
   }
 }

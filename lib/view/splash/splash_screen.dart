@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hr_app/bloc/location_bloc/location_bloc.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
+import 'package:hr_app/services/session_manager/session_controller.dart';
 import 'package:hr_app/view/bottombar/bottom_navigation_bar.dart';
+import 'package:hr_app/view/login/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     _requestLocationPermission();
-    _navigateToHome();
+    _navigate();
   }
 
   _requestLocationPermission() {
@@ -26,14 +28,18 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  _navigateToHome() async {
+  _navigate() async {
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const BottomBar()),
-      );
-    }
+    await SessionController().getUserFromPreference();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SessionController.isLogin == true
+            ? const BottomBar()
+            : const LoginScreen(),
+      ),
+    );
   }
 
   @override
@@ -43,7 +49,7 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [ 
+          children: [
             Container(
               width: 120.w,
               height: 120.h,
@@ -57,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: AppColors.primary,
               ),
             ),
-            SizedBox(height: 30.h), 
+            SizedBox(height: 30.h),
             Text(
               'HR App',
               style: TextStyle(
@@ -80,5 +86,3 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-
-

@@ -30,33 +30,40 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppDimensions.paddingL,
-                AppDimensions.paddingL,
-                AppDimensions.paddingL,
-                AppDimensions.paddingXXL,
-              ),
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildClockInCard(),
-                  SizedBox(height: AppDimensions.paddingXXL),
-                  _buildQuickActions(),
-                  SizedBox(height: AppDimensions.paddingXXL),
-                  _buildFirstSummaryCard(),
-                  SizedBox(height: AppDimensions.paddingL),
-                  _buildSecondSummaryCard(),
+                  // _buildHeader(),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      AppDimensions.paddingL,
+                      AppDimensions.paddingL,
+                      AppDimensions.paddingL,
+                      AppDimensions.paddingXXL,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildClockInCard(),
+                        SizedBox(height: AppDimensions.paddingXXL),
+                        _buildQuickActions(),
+                        SizedBox(height: AppDimensions.paddingXXL),
+                        _buildFirstSummaryCard(),
+                        SizedBox(height: AppDimensions.paddingL),
+                        _buildSecondSummaryCard(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -242,9 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Attendance',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
-                builder: (_) => const AttendanceScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const AttendanceScreen()),
             ),
           ),
         ),
@@ -258,9 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Leave',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
-                builder: (_) => const ApplyLeaveScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const ApplyLeaveScreen()),
             ),
           ),
         ),
@@ -269,14 +272,14 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _quickCard(
             circularIcon: false,
             icon: Icons.beach_access_outlined,
-            iconBg: AppColors.dashboardQuickExpenseCoral.withValues(alpha: 0.15),
+            iconBg: AppColors.dashboardQuickExpenseCoral.withValues(
+              alpha: 0.15,
+            ),
             iconColor: AppColors.dashboardQuickExpenseCoral,
             label: 'Expense',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
-                builder: (_) => const ExpenseScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const ExpenseScreen()),
             ),
           ),
         ),
@@ -396,11 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Divider(height: 1, thickness: 1, color: AppColors.divider);
   }
 
-  Widget _squareIcon(
-    IconData icon,
-    Color iconColor, {
-    Color? background,
-  }) {
+  Widget _squareIcon(IconData icon, Color iconColor, {Color? background}) {
     final bg = background ?? iconColor.withValues(alpha: 0.15);
     return Container(
       width: 40.w,

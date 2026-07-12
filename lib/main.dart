@@ -21,28 +21,32 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   configureAppRuntime();
 
-  final sharedStorageService = LocationStorageService();
-  final sharedRepository = LocationRepository();
-  final sharedSyncService = LocationSyncService(
-    repository: sharedRepository,
-    storageService: sharedStorageService,
-  );
-  final trackingService = LocationTrackingService(
-    permissionService: LocationPermissionService(),
-    storageService: sharedStorageService,
-    syncService: sharedSyncService,
-  );
+  try {
+    final sharedStorageService = LocationStorageService();
+    final sharedRepository = LocationRepository();
+    final sharedSyncService = LocationSyncService(
+      repository: sharedRepository,
+      storageService: sharedStorageService,
+    );
+    final trackingService = LocationTrackingService(
+      permissionService: LocationPermissionService(),
+      storageService: sharedStorageService,
+      syncService: sharedSyncService,
+    );
 
-  Get.put(LocationController(
-    permissionService: LocationPermissionService(),
-    storageService: sharedStorageService,
-    syncService: sharedSyncService,
-    trackingService: trackingService,
-  ));
+    Get.put(LocationController(
+      permissionService: LocationPermissionService(),
+      storageService: sharedStorageService,
+      syncService: sharedSyncService,
+      trackingService: trackingService,
+    ));
 
-  await WorkmanagerService.initialize();
-  await WorkmanagerService.registerPeriodicSync();
-  await trackingService.initialize();
+    await WorkmanagerService.initialize();
+    await WorkmanagerService.registerPeriodicSync();
+    await trackingService.initialize();
+  } catch (e, st) {
+    debugPrint('Startup init error (non-fatal): $e\n$st');
+  }
 
   runApp(const MyApp());
 }

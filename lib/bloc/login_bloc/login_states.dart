@@ -5,7 +5,7 @@ class LoginStates extends Equatable {
   const LoginStates({
     this.email = '',
     this.password = '',
-    this.loginApi = const ApiResponse.completed(''),
+    this.loginApi = const ApiResponse.idle(),
   });
 
   final String email;
