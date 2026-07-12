@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hr_app/data/network/base_api_services.dart';
+import 'package:hr_app/services/session_manager/session_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,6 +11,21 @@ import '../exception/app_exceptions.dart';
 
 /// Class for handling network API requests.
 class NetworkApiService implements BaseApiServices {
+  Map<String, String> _authHeaders([Map<String, String>? extra]) {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    final token = SessionController.token;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    if (extra != null) {
+      headers.addAll(extra);
+    }
+    return headers;
+  }
+
   /// Sends a GET request to the specified [url] and returns the response.
   ///
   /// Throws a [NoInternetException] if there is no internet connection.
@@ -22,7 +38,7 @@ class NetworkApiService implements BaseApiServices {
     dynamic responseJson;
     try {
       final response = await http
-          .get(Uri.parse(url))
+          .get(Uri.parse(url), headers: _authHeaders())
           .timeout(const Duration(seconds: 20));
       responseJson = returnResponse(response);
     } on SocketException {
@@ -55,19 +71,13 @@ class NetworkApiService implements BaseApiServices {
       final Object body;
       if (data is String) {
         body = data;
-        headers = const {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
+        headers = _authHeaders();
       } else if (data is Map) {
         body = jsonEncode(data);
-        headers = const {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
+        headers = _authHeaders();
       } else {
         body = data.toString();
-        headers = null;
+        headers = _authHeaders();
       }
 
       final http.Response response = await http
