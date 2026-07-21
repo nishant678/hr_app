@@ -6,6 +6,7 @@ import 'package:hr_app/configs/components/design/spec_shadows.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
+import 'package:hr_app/services/session_manager/session_controller.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/face_checkin/face_check_in_screen.dart';
@@ -20,10 +21,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String name = "";
   @override
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(const LoadHomeData());
+  }
+
+  callUserData() async {
+    await SessionController().getUserFromPreference();
+    // name = SessionController. ?? "";
   }
 
   @override
@@ -38,7 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // _buildHeader(),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       AppDimensions.paddingL,

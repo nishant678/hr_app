@@ -100,6 +100,50 @@ class NetworkApiService implements BaseApiServices {
     return responseJson;
   }
 
+  /// Sends a PUT request to the specified [url] with the provided [data]
+  /// and returns the response.
+  @override
+  Future<dynamic> putApi(String url, dynamic data) async {
+    if (kDebugMode) {
+      print(url);
+      print(data);
+    }
+
+    dynamic responseJson;
+    try {
+      final Map<String, String>? headers;
+      final Object body;
+      if (data is String) {
+        body = data;
+        headers = _authHeaders();
+      } else if (data is Map) {
+        body = jsonEncode(data);
+        headers = _authHeaders();
+      } else {
+        body = data.toString();
+        headers = _authHeaders();
+      }
+
+      final http.Response response = await http
+          .put(
+            Uri.parse(url),
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 10));
+      responseJson = returnResponse(response);
+    } on SocketException {
+      throw NoInternetException('No Internet Connection');
+    } on TimeoutException {
+      throw FetchDataException('Network Request time out');
+    }
+
+    if (kDebugMode) {
+      print(responseJson);
+    }
+    return responseJson;
+  }
+
   dynamic _parseError(http.Response response) {
     try {
       final json = jsonDecode(response.body);

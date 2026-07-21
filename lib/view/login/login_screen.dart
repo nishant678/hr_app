@@ -38,16 +38,18 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               SizedBox(height: 60.h),
               Container(
-                width: 100.w,
-                height: 100.h,
+                width: 90.w,
+                height: 80.h,
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(24.r),
                 ),
-                child: Icon(
-                  Icons.business_center,
-                  size: 50.sp,
-                  color: AppColors.primary,
+                child: Center(
+                  child: Image.asset(
+                    'assets/work_book_icon.png',
+                    width: 60.w,
+                    height: 60.h,
+                  ),
                 ),
               ),
               SizedBox(height: 16.h),
@@ -69,7 +71,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 40.h),
               Container(
-                margin: EdgeInsets.symmetric(horizontal: AppDimensions.paddingXL),
+                margin: EdgeInsets.symmetric(
+                  horizontal: AppDimensions.paddingXL,
+                ),
                 padding: EdgeInsets.all(AppDimensions.paddingXXL),
                 decoration: BoxDecoration(
                   color: AppColors.white,
@@ -82,9 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (state.loginApi.status == Status.completed) {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const BottomBar(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const BottomBar()),
                         );
                       }
                     },
@@ -97,10 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            'Login',
-                            style: AppTextStyles.h2,
-                          ),
+                          Text('Login', style: AppTextStyles.h2),
                           SizedBox(height: AppDimensions.paddingXXL),
                           TextFormField(
                             controller: _emailController,
@@ -125,9 +124,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                             onChanged: (v) {
-                              context
-                                  .read<LoginBloc>()
-                                  .add(EmailChanged(email: v));
+                              context.read<LoginBloc>().add(
+                                EmailChanged(email: v),
+                              );
                             },
                           ),
                           SizedBox(height: AppDimensions.paddingL),
@@ -163,9 +162,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                             onChanged: (v) {
-                              context
-                                  .read<LoginBloc>()
-                                  .add(PasswordChanged(password: v));
+                              context.read<LoginBloc>().add(
+                                PasswordChanged(password: v),
+                              );
                             },
                           ),
                           if (errorMsg.isNotEmpty) ...[
@@ -187,15 +186,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                           SizedBox(height: AppDimensions.paddingXXL),
                           SizedBox(
-                            height: 50.h,
+                            height: 40.h,
                             child: ElevatedButton(
                               onPressed: isLoading
                                   ? null
                                   : () {
                                       if (_formKey.currentState!.validate()) {
-                                        context
-                                            .read<LoginBloc>()
-                                            .add(const LoginApi());
+                                        context.read<LoginBloc>().add(
+                                          const LoginApi(),
+                                        );
                                       }
                                     },
                               style: ElevatedButton.styleFrom(

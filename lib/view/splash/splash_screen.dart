@@ -51,21 +51,23 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 120.w,
-              height: 120.h,
+              width: 100.w,
+              height: 90.h,
               decoration: BoxDecoration(
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(30.r),
               ),
-              child: Icon(
-                Icons.business_center,
-                size: 60.sp,
-                color: AppColors.primary,
+              child: Center(
+                child: Image.asset(
+                  'assets/work_book_icon.png',
+                  width: 60.w,
+                  height: 60.h,
+                ),
               ),
             ),
             SizedBox(height: 30.h),
             Text(
-              'HR App',
+              'Work Book',
               style: TextStyle(
                 color: AppColors.white,
                 fontSize: 32.sp,
