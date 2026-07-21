@@ -6,6 +6,8 @@ import 'package:hr_app/configs/components/design/spec_shadows.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
+import 'package:hr_app/model/expense/expense_model.dart';
+import 'package:hr_app/repository/expense_api/expense_http_api_repository.dart';
 import 'package:hr_app/view/expense/apply_expense_screen.dart';
 
 class ExpenseScreen extends StatefulWidget {
@@ -16,7 +18,82 @@ class ExpenseScreen extends StatefulWidget {
 }
 
 class _ExpenseScreenState extends State<ExpenseScreen> {
-  final String _selectedMonth = 'This Month';
+  final _expenseRepo = ExpenseHttpApiRepository();
+  List<ExpenseModel> _expenses = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchExpenses();
+  }
+
+  Future<void> _fetchExpenses() async {
+    setState(() => _loading = true);
+    try {
+      final data = await _expenseRepo.getExpenses();
+      if (mounted) setState(() => _expenses = data);
+    } catch (e) {
+      debugPrint('Failed to load expenses: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _openApplyExpense() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const ApplyExpenseScreen()),
+    );
+    if (result == true) _fetchExpenses();
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'APPROVED':
+        return AppColors.success;
+      case 'REJECTED':
+        return AppColors.error;
+      default:
+        return AppColors.warning;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      default:
+        return 'Pending';
+    }
+  }
+
+  IconData _typeIcon(String type) {
+    switch (type) {
+      case 'TRAVEL':
+        return Icons.directions_car_outlined;
+      case 'MEALS':
+        return Icons.restaurant_outlined;
+      case 'OFFICE_SUPPLIES':
+        return Icons.inventory_2_outlined;
+      case 'SOFTWARE':
+        return Icons.computer_outlined;
+      case 'EQUIPMENT':
+        return Icons.build_outlined;
+      case 'UTILITIES':
+        return Icons.bolt_outlined;
+      case 'TRANSPORT':
+        return Icons.local_taxi_outlined;
+      default:
+        return Icons.receipt_outlined;
+    }
+  }
+
+  String _formatType(String type) {
+    return type.split('_').map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase()).join(' ');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,68 +105,53 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.add, color: AppColors.primary, size: 24.sp),
-            onPressed: () {
-              Navigator.push<void>(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => const ApplyExpenseScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.more_vert, color: AppColors.textPrimary, size: 22.sp),
-            onPressed: () {},
+            onPressed: _openApplyExpense,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppDimensions.paddingL),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildMonthFilter(),
-            SizedBox(height: AppDimensions.paddingL),
-            _buildSummaryCard(),
-            SizedBox(height: AppDimensions.paddingXXL),
-            Text(
-              'Expense Reports',
-              style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700),
-            ),
-            SizedBox(height: AppDimensions.paddingM),
-            _buildExpenseList(),
-          ],
-        ),
-      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _expenses.isEmpty
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: _fetchExpenses,
+                  child: ListView.separated(
+                    padding: EdgeInsets.all(16.w),
+                    itemCount: _expenses.length + 1,
+                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                    itemBuilder: (context, index) {
+                      if (index == 0) return _buildSummaryCard();
+                      final expense = _expenses[index - 1];
+                      return _buildExpenseCard(expense);
+                    },
+                  ),
+                ),
     );
   }
 
-  Widget _buildMonthFilter() {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: AppDimensions.paddingL,
-        vertical: 12.h,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.border),
-        boxShadow: SpecShadows.card,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            _selectedMonth,
-            style: AppTextStyles.labelL.copyWith(fontWeight: FontWeight.w600),
+          Icon(Icons.receipt_long_outlined, size: 64.sp, color: AppColors.textSecondary),
+          SizedBox(height: AppDimensions.paddingL),
+          Text('No expenses yet', style: AppTextStyles.h3),
+          SizedBox(height: AppDimensions.paddingS),
+          ElevatedButton.icon(
+            onPressed: _openApplyExpense,
+            icon: const Icon(Icons.add),
+            label: const Text('Apply Expense'),
           ),
-          Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 22.sp),
         ],
       ),
     );
   }
 
   Widget _buildSummaryCard() {
+    final total = _expenses.fold(0.0, (s, e) => s + e.amount);
+    final pending = _expenses.where((e) => e.status == 'PENDING').fold(0.0, (s, e) => s + e.amount);
+    final approved = _expenses.where((e) => e.status == 'APPROVED').fold(0.0, (s, e) => s + e.amount);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(AppDimensions.paddingL),
@@ -100,14 +162,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       ),
       child: Column(
         children: [
-          _summaryRow('Total Expenses', '\$210.00', emphasize: true),
+          _summaryRow('Total Expenses', '\$${total.toStringAsFixed(2)}', emphasize: true),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: Divider(height: 1, color: AppColors.divider),
           ),
-          _summaryRow('Pending', '\$2,250.00'),
+          _summaryRow('Pending', '\$${pending.toStringAsFixed(2)}'),
           SizedBox(height: 10.h),
-          _summaryRow('Approved', '\$150.00'),
+          _summaryRow('Approved', '\$${approved.toStringAsFixed(2)}'),
         ],
       ),
     );
@@ -133,34 +195,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     );
   }
 
-  Widget _buildExpenseList() {
-    return Column(
-      children: [
-        SpecListTile(
-          leading: _iconBubble(Icons.directions_car_outlined, AppColors.primary),
-          title: 'Travel Expense',
-          subtitle: 'Transport',
-          trailingPrimary: '\$50.00',
-          trailingBadge: 'Pending',
-          badgeColor: AppColors.warning,
-        ),
-        SpecListTile(
-          leading: _iconBubble(Icons.restaurant_outlined, AppColors.leaveAccent),
-          title: 'Client Meeting',
-          subtitle: 'Meals',
-          trailingPrimary: '\$35.00',
-          trailingBadge: 'Pending',
-          badgeColor: AppColors.warning,
-        ),
-        SpecListTile(
-          leading: _iconBubble(Icons.inventory_2_outlined, AppColors.success),
-          title: 'Office Supplies',
-          subtitle: 'Stationery',
-          trailingPrimary: '\$125.00',
-          trailingBadge: 'Pending',
-          badgeColor: AppColors.warning,
-        ),
-      ],
+  Widget _buildExpenseCard(ExpenseModel expense) {
+    return SpecListTile(
+      leading: _iconBubble(_typeIcon(expense.expenseType), AppColors.primary),
+      title: _formatType(expense.expenseType),
+      subtitle: expense.description ?? expense.expenseDate,
+      trailingPrimary: '\$${expense.amount.toStringAsFixed(2)}',
+      trailingBadge: _statusLabel(expense.status),
+      badgeColor: _statusColor(expense.status),
     );
   }
 

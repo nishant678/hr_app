@@ -4,4 +4,6 @@ class AppUrl {
   static var loginEndPoint = '$baseUrl/api/auth/login';
   static var leavesEndPoint = '$baseUrl/api/leaves';
   static String myLeavesEndPoint = '$baseUrl/api/leaves/my';
+  static var expensesEndPoint = '$baseUrl/api/expenses';
+  static String myExpensesEndPoint = '$baseUrl/api/expenses/my';
 }
