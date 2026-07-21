@@ -25,7 +25,7 @@ class AppDimensions {
   static double iconXL = 48.w;
 
   // Button Heights
-  static double buttonHeight = 48.h;
+  static double buttonHeight = 40.h;
   static double buttonHeightL = 56.h;
 
   // Card Elevation

@@ -7,7 +7,7 @@ import 'package:hr_app/configs/theme/app_text_styles.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/home/home_screen.dart';
-import 'package:hr_app/view/leave/apply_leave_screen.dart';
+import 'package:hr_app/view/leave/leave_list_screen.dart';
 
 class BottomBar extends StatefulWidget {
   const BottomBar({super.key});
@@ -22,7 +22,7 @@ class _BottomBarState extends State<BottomBar> {
   static const List<Widget> _tabs = <Widget>[
     HomeScreen(),
     AttendanceScreen(),
-    ApplyLeaveScreen(),
+    LeaveListScreen(),
     ExpenseScreen(),
   ];
 
