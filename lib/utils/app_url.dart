@@ -6,4 +6,9 @@ class AppUrl {
   static String myLeavesEndPoint = '$baseUrl/api/leaves/my';
   static var expensesEndPoint = '$baseUrl/api/expenses';
   static String myExpensesEndPoint = '$baseUrl/api/expenses/my';
+  static var attendanceEndPoint = '$baseUrl/api/attendance';
+  static String myAttendanceEndPoint = '$baseUrl/api/attendance/my';
+  static String todayAttendanceEndPoint = '$baseUrl/api/attendance/today';
+  static String attendanceCheckInEndPoint = '$baseUrl/api/attendance/check-in';
+  static String attendanceCheckOutEndPoint = '$baseUrl/api/attendance/check-out';
 }

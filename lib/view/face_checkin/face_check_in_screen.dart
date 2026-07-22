@@ -9,14 +9,21 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
+import 'package:hr_app/repository/attendance_api/attendance_http_api_repository.dart';
 import 'package:hr_app/services/face_attendance/face_attendance_validator.dart';
 import 'package:hr_app/services/face_attendance/ml_camera_input.dart';
 
-/// Live face preview + **Capture** button: still photo is verified with ML Kit before clock-in.
-///
-/// Camera permission is requested by [CameraController.initialize] (official camera plugin).
 class FaceCheckInScreen extends StatefulWidget {
-  const FaceCheckInScreen({super.key});
+  final double? latitude;
+  final double? longitude;
+  final String? locationAddress;
+
+  const FaceCheckInScreen({
+    super.key,
+    this.latitude,
+    this.longitude,
+    this.locationAddress,
+  });
 
   @override
   State<FaceCheckInScreen> createState() => _FaceCheckInScreenState();
@@ -33,6 +40,8 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
       performanceMode: FaceDetectorMode.accurate,
     ),
   );
+
+  final _attendanceRepo = AttendanceHttpApiRepository();
 
   CameraController? _controller;
   CameraDescription? _cameraDesc;
@@ -158,7 +167,6 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     return sz;
   }
 
-  /// Single-shot capture: stop stream → [takePicture] → ML Kit on file → resume stream on failure.
   Future<void> _captureAndVerify() async {
     if (_completed || !mounted || _capturing) return;
     final controller = _controller;
@@ -169,23 +177,19 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
       _hint = 'Photo capture ho rahi hai… / Capturing photo…';
     });
 
-    XFile? shot;
+    String? capturedPath;
     try {
       if (controller.value.isStreamingImages) {
         await controller.stopImageStream();
       }
 
-      shot = await controller.takePicture();
-      final path = shot.path;
-      final input = InputImage.fromFilePath(path);
+      final shot = await controller.takePicture();
+      capturedPath = shot.path;
+      final input = InputImage.fromFilePath(capturedPath);
       final faces = await _detector.processImage(input);
 
-      final bytes = await File(path).readAsBytes();
+      final bytes = await File(capturedPath).readAsBytes();
       final imageSize = await _readImageSizeBytes(bytes);
-
-      try {
-        await File(path).delete();
-      } catch (_) {}
 
       if (!mounted || _completed) return;
 
@@ -207,17 +211,34 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
       }
 
       final result = FaceAttendanceValidator.validate(faces.first, imageSize);
-      if (result.ok) {
-        _completed = true;
-        if (mounted) Navigator.of(context).pop(true);
+      if (!result.ok) {
+        setState(() {
+          _hint = result.message;
+          _capturing = false;
+        });
+        await controller.startImageStream(_onCameraImage);
         return;
       }
 
-      setState(() {
-        _hint = result.message;
-        _capturing = false;
-      });
-      await controller.startImageStream(_onCameraImage);
+      // Face validated — call check-in API
+      setState(() => _hint = 'Check-in ho raha hai… / Checking in…');
+
+      try {
+        await _attendanceRepo.checkIn(
+          faceImagePath: capturedPath,
+          latitude: widget.latitude,
+          longitude: widget.longitude,
+          locationAddress: widget.locationAddress,
+        );
+        _completed = true;
+        if (mounted) Navigator.of(context).pop(true);
+      } catch (e) {
+        setState(() {
+          _hint = 'Check-in failed: $e\nCapture se dobara try karein / Tap Capture to retry';
+          _capturing = false;
+        });
+        await controller.startImageStream(_onCameraImage);
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -264,7 +285,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
       if (faces.isEmpty) {
         setState(() {
           _hint =
-              'Chehra camera ke saamne laayein / Bring your face in front of the camera\n↓ Phir Capture dabayein / Then tap Capture';
+              'Chehra camera ke saamne laayein / Bring your face in front of the camera\nPhir Capture dabayein / Then tap Capture';
         });
       } else if (faces.length > 1) {
         setState(() {
@@ -296,6 +317,53 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     super.dispose();
   }
 
+  Widget _buildCaptureBar() {
+    if (_initializing || _permissionDenied || _controller == null || !_controller!.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h + MediaQuery.of(context).padding.bottom),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black.withValues(alpha: 0.85), Colors.black],
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Capture & verify',
+              style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+            ),
+            SizedBox(height: 10.h),
+            GestureDetector(
+              onTap: _capturing ? null : _captureAndVerify,
+              child: Container(
+                width: 72.w,
+                height: 72.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  color: _capturing ? Colors.white24 : AppColors.dashboardClockInGreen,
+                ),
+                child: _capturing
+                    ? Padding(
+                        padding: EdgeInsets.all(18.w),
+                        child: const CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                      )
+                    : Icon(Icons.camera_alt, color: Colors.white, size: 32.sp),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -303,13 +371,14 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: const Text('Face check-in'),
+        title: const Text('Face Check-in'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(false),
         ),
       ),
       body: _buildBody(),
+      bottomNavigationBar: _buildCaptureBar(),
     );
   }
 
@@ -342,8 +411,8 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
             Text(_hint, style: TextStyle(color: Colors.white, fontSize: 15.sp)),
             SizedBox(height: 16.h),
             Text(
-              'Android: Settings → Apps → HR App → Permissions → Camera\n'
-              'iOS: Settings → Privacy → Camera → HR App',
+              'Android: Settings -> Apps -> HR App -> Permissions -> Camera\n'
+              'iOS: Settings -> Privacy -> Camera -> HR App',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 12.sp, height: 1.4),
             ),
@@ -391,10 +460,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
                     height: 0.38.sh.clamp(280.0, 400.0),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(140),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        width: 3,
-                      ),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 3),
                     ),
                   ),
                 ),
@@ -413,79 +479,13 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
                   ),
                 ),
               ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: EdgeInsets.fromLTRB(
-                    24.w,
-                    16.h,
-                    24.w,
-                    24.h + MediaQuery.of(context).padding.bottom,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.75),
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Capture & verify / Capture se check-in',
-                        style: TextStyle(color: Colors.white70, fontSize: 12.sp),
-                      ),
-                      SizedBox(height: 12.h),
-                      Center(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _capturing ? null : _captureAndVerify,
-                            customBorder: const CircleBorder(),
-                            child: Ink(
-                              width: 76.w,
-                              height: 76.w,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 4),
-                                color: _capturing
-                                    ? Colors.white24
-                                    : AppColors.dashboardClockInGreen,
-                              ),
-                              child: _capturing
-                                  ? Padding(
-                                      padding: EdgeInsets.all(20.w),
-                                      child: const CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.white,
-                                      size: 34.sp,
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: AppDimensions.paddingL, vertical: 8.h),
           child: Text(
-            'Live preview sirf madad ke liye hai; asli check-in Capture button se hota hai.\nLive preview is a guide; check-in happens when you tap Capture.',
+            'Live preview sirf madad ke liye hai; asli check-in Neeche Capture button se hota hai.\nLive preview is a guide; check-in happens via the Capture button below.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white54, fontSize: 10.sp, height: 1.3),
           ),
