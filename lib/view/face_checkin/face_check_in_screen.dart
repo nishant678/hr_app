@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
-
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +50,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
   bool _busy = false;
   bool _capturing = false;
   bool _completed = false;
+  bool _faceValid = false;
   String _hint = 'Camera tayyar ho rahi hai… / Preparing camera…';
   DateTime? _lastRun;
 
@@ -75,7 +75,8 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     if (kIsWeb) {
       setState(() {
         _initializing = false;
-        _hint = 'Face check-in sirf Android / iOS par / Face check-in is only on Android & iOS.';
+        _hint =
+            'Face check-in sirf Android / iOS par / Face check-in is only on Android & iOS.';
       });
       return;
     }
@@ -103,7 +104,9 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
       picked,
       ResolutionPreset.high,
       enableAudio: false,
-      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
 
     try {
@@ -115,7 +118,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
         _permissionDenied = _looksLikeCameraPermissionDenied(e);
         _hint = _permissionDenied
             ? 'Camera permission allow karein (system dialog) ya Settings se enable karein.\n'
-                'Allow camera permission from the system dialog, or enable it in Settings.'
+                  'Allow camera permission from the system dialog, or enable it in Settings.'
             : 'Camera start nahi ho paya: ${e.description ?? e.code}';
       });
       await _controller?.dispose();
@@ -162,7 +165,10 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
   Future<Size> _readImageSizeBytes(Uint8List bytes) async {
     final codec = await ui.instantiateImageCodec(bytes);
     final frame = await codec.getNextFrame();
-    final sz = Size(frame.image.width.toDouble(), frame.image.height.toDouble());
+    final sz = Size(
+      frame.image.width.toDouble(),
+      frame.image.height.toDouble(),
+    );
     frame.image.dispose();
     return sz;
   }
@@ -174,6 +180,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
 
     setState(() {
       _capturing = true;
+      _faceValid = false;
       _hint = 'Photo capture ho rahi hai… / Capturing photo…';
     });
 
@@ -234,7 +241,8 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
         if (mounted) Navigator.of(context).pop(true);
       } catch (e) {
         setState(() {
-          _hint = 'Check-in failed: $e\nCapture se dobara try karein / Tap Capture to retry';
+          _hint =
+              'Check-in failed: $e\nCapture se dobara try karein / Tap Capture to retry';
           _capturing = false;
         });
         await controller.startImageStream(_onCameraImage);
@@ -247,7 +255,8 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
         });
       }
       try {
-        if (controller.value.isInitialized && !controller.value.isStreamingImages) {
+        if (controller.value.isInitialized &&
+            !controller.value.isStreamingImages) {
           await controller.startImageStream(_onCameraImage);
         }
       } catch (_) {}
@@ -258,7 +267,8 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     if (!mounted || _completed || _capturing) return;
     if (_busy) return;
     final now = DateTime.now();
-    if (_lastRun != null && now.difference(_lastRun!) < const Duration(milliseconds: 420)) {
+    if (_lastRun != null &&
+        now.difference(_lastRun!) < const Duration(milliseconds: 420)) {
       return;
     }
     _lastRun = now;
@@ -284,16 +294,19 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
 
       if (faces.isEmpty) {
         setState(() {
+          _faceValid = false;
           _hint =
               'Chehra camera ke saamne laayein / Bring your face in front of the camera\nPhir Capture dabayein / Then tap Capture';
         });
       } else if (faces.length > 1) {
         setState(() {
+          _faceValid = false;
           _hint = FaceCheckResult.multipleFaces.message;
         });
       } else {
         final result = FaceAttendanceValidator.validate(faces.first, imageSize);
         setState(() {
+          _faceValid = result.ok;
           _hint = result.ok
               ? 'Theek lag raha hai — ab Capture dabayein.\nLooks good — now tap Capture.'
               : '${result.message}\nPhir dubara try karein / Then adjust and try again.';
@@ -318,11 +331,19 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
   }
 
   Widget _buildCaptureBar() {
-    if (_initializing || _permissionDenied || _controller == null || !_controller!.value.isInitialized) {
+    if (_initializing ||
+        _permissionDenied ||
+        _controller == null ||
+        !_controller!.value.isInitialized) {
       return const SizedBox.shrink();
     }
     return Container(
-      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+        24.w,
+        12.h,
+        24.w,
+        12.h + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -336,26 +357,51 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Capture & verify',
+              _capturing
+                  ? 'Verifying…'
+                  : _faceValid
+                  ? 'Face verified — tap to capture'
+                  : 'Bring your face inside the oval',
               style: TextStyle(color: Colors.white70, fontSize: 12.sp),
             ),
             SizedBox(height: 10.h),
             GestureDetector(
-              onTap: _capturing ? null : _captureAndVerify,
-              child: Container(
+              onTap: (!_capturing && _faceValid) ? _captureAndVerify : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
                 width: 72.w,
                 height: 72.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  color: _capturing ? Colors.white24 : AppColors.dashboardClockInGreen,
+                  border: Border.all(
+                    color: _capturing
+                        ? Colors.white24
+                        : _faceValid
+                        ? AppColors.dashboardClockInGreen
+                        : Colors.white38,
+                    width: 4,
+                  ),
+                  color: _capturing
+                      ? Colors.white24
+                      : _faceValid
+                      ? AppColors.dashboardClockInGreen
+                      : Colors.white10,
                 ),
                 child: _capturing
                     ? Padding(
                         padding: EdgeInsets.all(18.w),
-                        child: const CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: Colors.white,
+                        ),
                       )
-                    : Icon(Icons.camera_alt, color: Colors.white, size: 32.sp),
+                    : Icon(
+                        _faceValid
+                            ? Icons.camera_alt
+                            : Icons.camera_alt_outlined,
+                        color: _faceValid ? Colors.white : Colors.white38,
+                        size: 32.sp,
+                      ),
               ),
             ),
           ],
@@ -408,13 +454,20 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_hint, style: TextStyle(color: Colors.white, fontSize: 15.sp)),
+            Text(
+              _hint,
+              style: TextStyle(color: Colors.white, fontSize: 15.sp),
+            ),
             SizedBox(height: 16.h),
             Text(
               'Android: Settings -> Apps -> HR App -> Permissions -> Camera\n'
               'iOS: Settings -> Privacy -> Camera -> HR App',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 12.sp, height: 1.4),
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12.sp,
+                height: 1.4,
+              ),
             ),
             SizedBox(height: 24.h),
             FilledButton(
@@ -434,7 +487,11 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(_hint, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 15.sp)),
+              Text(
+                _hint,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 15.sp),
+              ),
               SizedBox(height: 20.h),
               FilledButton(
                 onPressed: _retryAfterPermission,
@@ -455,12 +512,28 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
               Center(child: CameraPreview(c)),
               IgnorePointer(
                 child: Center(
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
                     width: 0.72.sw.clamp(220.0, 300.0),
                     height: 0.38.sh.clamp(280.0, 400.0),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(140),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 3),
+                      border: Border.all(
+                        color: _faceValid
+                            ? AppColors.dashboardClockInGreen
+                            : Colors.white.withValues(alpha: 0.9),
+                        width: 3,
+                      ),
+                      boxShadow: _faceValid
+                          ? [
+                              BoxShadow(
+                                color: AppColors.dashboardClockInGreen
+                                    .withValues(alpha: 0.4),
+                                blurRadius: 24,
+                                spreadRadius: 4,
+                              ),
+                            ]
+                          : null,
                     ),
                   ),
                 ),
@@ -475,7 +548,11 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
                   child: Text(
                     _hint,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.35),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.sp,
+                      height: 1.35,
+                    ),
                   ),
                 ),
               ),
@@ -483,11 +560,18 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
           ),
         ),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppDimensions.paddingL, vertical: 8.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppDimensions.paddingL,
+            vertical: 8.h,
+          ),
           child: Text(
             'Live preview sirf madad ke liye hai; asli check-in Neeche Capture button se hota hai.\nLive preview is a guide; check-in happens via the Capture button below.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white54, fontSize: 10.sp, height: 1.3),
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 10.sp,
+              height: 1.3,
+            ),
           ),
         ),
       ],

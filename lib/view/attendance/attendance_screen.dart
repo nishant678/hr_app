@@ -211,6 +211,24 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 'Check-out: ${today.checkOutTime}',
                 style: TextStyle(color: Colors.white70, fontSize: 14.sp),
               ),
+            if (today.locationAddress != null && today.locationAddress!.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 4.h),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on, color: Colors.white60, size: 14.sp),
+                    SizedBox(width: 4.w),
+                    Expanded(
+                      child: Text(
+                        today.locationAddress!,
+                        style: TextStyle(color: Colors.white60, fontSize: 11.sp),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             SizedBox(height: 4.h),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
@@ -230,7 +248,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 child: ElevatedButton(
                   onPressed: _handleCheckOut,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.dashboardClockInGreen,
+                    backgroundColor: AppColors.dashboardQuickExpenseCoral,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                     padding: EdgeInsets.symmetric(vertical: 14.h),
@@ -277,13 +295,24 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildRecordCard(AttendanceModel record) {
-    return SpecListTile(
-      leading: _iconBubble(_typeIcon(record.status), _statusColor(record.status)),
-      title: _formatDate(record.date),
-      subtitle: record.checkInTime != null ? '${record.checkInTime} - ${record.checkOutTime ?? "—"}' : 'No check-in',
-      trailingPrimary: record.hoursWorked != null ? '${record.hoursWorked!.toStringAsFixed(1)}h' : '—',
-      trailingBadge: _statusLabel(record.status),
-      badgeColor: _statusColor(record.status),
+    final addressText = record.locationAddress != null && record.locationAddress!.isNotEmpty
+        ? record.locationAddress!
+        : null;
+    final subtitleText = record.checkInTime != null
+        ? '${record.checkInTime} - ${record.checkOutTime ?? "—"}'
+        : 'No check-in';
+
+    return Column(
+      children: [
+        SpecListTile(
+          leading: _iconBubble(_typeIcon(record.status), _statusColor(record.status)),
+          title: _formatDate(record.date),
+          subtitle: addressText != null ? '$subtitleText\n$addressText' : subtitleText,
+          trailingPrimary: record.hoursWorked != null ? '${record.hoursWorked!.toStringAsFixed(1)}h' : '—',
+          trailingBadge: _statusLabel(record.status),
+          badgeColor: _statusColor(record.status),
+        ),
+      ],
     );
   }
 

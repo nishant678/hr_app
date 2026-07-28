@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:hr_app/bloc/home_bloc/home_bloc.dart';
 import 'package:hr_app/configs/components/design/spec_shadows.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
-import 'package:hr_app/services/session_manager/session_controller.dart';
+import 'package:hr_app/model/attendance/attendance_model.dart';
+import 'package:hr_app/repository/attendance_api/attendance_http_api_repository.dart';
+import 'package:hr_app/services/location/address_service.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/face_checkin/face_check_in_screen.dart';
 import 'package:hr_app/view/leave/apply_leave_screen.dart';
+import 'package:intl/intl.dart';
 
-/// Home dashboard matched to **second** reference screenshot (colors, layout, icons, grouped summary cards).
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,17 +24,108 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String name = "";
+  final _attendanceRepo = AttendanceHttpApiRepository();
+  final _addressService = AddressService();
+
+  AttendanceModel? _todayRecord;
+  bool _loadingAttendance = true;
+  String _currentAddress = '';
+  double? _currentLat;
+  double? _currentLng;
+
   @override
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(const LoadHomeData());
+    _fetchTodayAttendance();
   }
 
-  callUserData() async {
-    await SessionController().getUserFromPreference();
-    // name = SessionController. ?? "";
+  Future<void> _fetchTodayAttendance() async {
+    setState(() => _loadingAttendance = true);
+    try {
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final records = await _attendanceRepo.getMyAttendance();
+      final record = records.where((r) => r.date == today).toList();
+      if (mounted) {
+        setState(() {
+          _todayRecord = record.isNotEmpty ? record.first : null;
+          _loadingAttendance = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingAttendance = false);
+    }
   }
+
+  Future<void> _fetchCurrentLocation() async {
+    try {
+      bool enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return;
+
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever) return;
+
+      Position pos = await Geolocator.getCurrentPosition();
+      _currentLat = pos.latitude;
+      _currentLng = pos.longitude;
+
+      final addr = await _addressService.getAddressFromPosition(pos);
+      if (mounted) {
+        setState(() => _currentAddress = addr ?? '');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _handleCheckIn() async {
+    await _fetchCurrentLocation();
+    if (!mounted) return;
+
+    final verified = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FaceCheckInScreen(
+          latitude: _currentLat,
+          longitude: _currentLng,
+          locationAddress: _currentAddress.isNotEmpty ? _currentAddress : null,
+        ),
+      ),
+    );
+
+    if (verified == true) {
+      _fetchTodayAttendance();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Check-in successful'), backgroundColor: Colors.green),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleCheckOut() async {
+    try {
+      await _attendanceRepo.checkOut();
+      _fetchTodayAttendance();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Check-out successful'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Check-out failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  String? get _checkInTime => _todayRecord?.checkInTime;
+  String? get _checkOutTime => _todayRecord?.checkOutTime;
+  bool get _isCheckedIn => _checkInTime != null;
+  bool get _isCheckedOut => _checkOutTime != null;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +217,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildClockInCard() {
+    final displayAddress = _todayRecord?.locationAddress != null &&
+            _todayRecord!.locationAddress!.isNotEmpty
+        ? _todayRecord!.locationAddress!
+        : _currentAddress;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -140,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Clock-In Today:',
+                  _isCheckedIn ? 'Clock-In Today:' : 'Not checked in yet',
                   style: AppTextStyles.bodyM.copyWith(
                     color: AppColors.white.withValues(alpha: 0.92),
                     fontWeight: FontWeight.w500,
@@ -150,95 +248,176 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               SizedBox(width: 8.w),
-              Text(
-                '9:15 AM',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.w800,
+              if (_isCheckedIn)
+                Text(
+                  _checkInTime!,
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
             ],
           ),
-          SizedBox(height: 16.h),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 50.h,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final navigator = Navigator.of(context);
-                      final messenger = ScaffoldMessenger.of(context);
-                      final verified = await navigator.push<bool>(
-                        MaterialPageRoute<bool>(
-                          builder: (_) => const FaceCheckInScreen(),
-                        ),
-                      );
-                      if (!mounted) return;
-                      if (verified == true) {
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Face verify ho gaya — clock-in record kiya gaya / Face verified — clock-in recorded',
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.dashboardClockInGreen,
-                      foregroundColor: AppColors.white,
-                      elevation: 0,
-                      shape: const StadiumBorder(),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add, size: 22.sp, color: AppColors.white),
-                        SizedBox(width: 6.w),
-                        Text(
-                          'CLOCK IN',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14.sp,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+          if (_isCheckedOut)
+            Padding(
+              padding: EdgeInsets.only(top: 4.h),
+              child: Text(
+                'Check-out: $_checkOutTime',
+                style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+            ),
+          ),
+          if (displayAddress.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 4.h),
+              child: Row(
                 children: [
-                  Text(
-                    'On time',
-                    style: AppTextStyles.bodyS.copyWith(
-                      color: AppColors.white.withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 6.h),
-                  CircleAvatar(
-                    radius: 18.r,
-                    backgroundColor: const Color(0xFF8FA8C4),
-                    child: Icon(
-                      Icons.person,
-                      color: AppColors.white,
-                      size: 20.sp,
+                  Icon(Icons.location_on, color: Colors.white60, size: 14.sp),
+                  SizedBox(width: 4.w),
+                  Expanded(
+                    child: Text(
+                      displayAddress,
+                      style: TextStyle(color: Colors.white60, fontSize: 11.sp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          SizedBox(height: 16.h),
+          if (_loadingAttendance)
+            const Center(child: CircularProgressIndicator(color: Colors.white))
+          else if (_isCheckedOut)
+            _buildAttendanceCompleteState()
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: _isCheckedIn ? _handleCheckOut : _handleCheckIn,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _isCheckedIn
+                          ? AppColors.dashboardQuickExpenseCoral
+                          : AppColors.dashboardClockInGreen,
+                      borderRadius: BorderRadius.circular(30.r),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 8.h,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _isCheckedIn ? Icons.logout : Icons.add,
+                            size: 20.sp,
+                            color: AppColors.white,
+                          ),
+                          SizedBox(width: 6.w),
+                          Text(
+                            _isCheckedIn ? 'CHECK OUT' : 'CHECK IN',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12.sp,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                SizedBox(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        _isCheckedIn ? 'Checked in' : 'On time',
+                        style: AppTextStyles.bodyS.copyWith(
+                          color: AppColors.white.withValues(alpha: 0.75),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      CircleAvatar(
+                        radius: 18.r,
+                        backgroundColor: const Color(0xFF8FA8C4),
+                        child: Icon(
+                          Icons.person,
+                          color: AppColors.white,
+                          size: 20.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAttendanceCompleteState() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white24,
+            borderRadius: BorderRadius.circular(30.r),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle, size: 20.sp, color: AppColors.white),
+                SizedBox(width: 6.w),
+                Text(
+                  'COMPLETED',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12.sp,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(width: 12.w),
+        SizedBox(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _isCheckedOut ? 'Done for today' : 'On time',
+                style: AppTextStyles.bodyS.copyWith(
+                  color: AppColors.white.withValues(alpha: 0.75),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 6.h),
+              CircleAvatar(
+                radius: 18.r,
+                backgroundColor: const Color(0xFF8FA8C4),
+                child: Icon(
+                  Icons.person,
+                  color: AppColors.white,
+                  size: 20.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -359,16 +538,16 @@ class _HomeScreenState extends State<HomeScreen> {
         _summaryRow(
           leading: _squareIcon(Icons.login, AppColors.dashboardClockInGreen),
           title: 'Clock-In',
-          trailing: '9:15 AM',
+          trailing: _checkInTime ?? '--',
         ),
         _summaryDivider(),
         _summaryRow(
           leading: _squareIcon(
-            Icons.arrow_downward,
-            AppColors.dashboardQuickLeaveOrange,
+            Icons.logout,
+            AppColors.dashboardQuickExpenseCoral,
           ),
-          title: 'Half Day Leave',
-          trailing: 'Mon',
+          title: 'Clock-Out',
+          trailing: _checkOutTime ?? '--',
         ),
         _summaryDivider(),
         _summaryRow(
@@ -377,14 +556,20 @@ class _HomeScreenState extends State<HomeScreen> {
             AppColors.white,
             background: AppColors.dashboardClockCardBlue,
           ),
-          title: 'Travel Expense',
-          trailing: '\$50.00',
+          title: 'Today\'s Hours',
+          trailing: _todayRecord?.hoursWorked != null
+              ? '${_todayRecord!.hoursWorked!.toStringAsFixed(1)}h'
+              : '--',
         ),
       ],
     );
   }
 
   Widget _buildSecondSummaryCard() {
+    final displayAddress = _todayRecord?.locationAddress != null &&
+            _todayRecord!.locationAddress!.isNotEmpty
+        ? _todayRecord!.locationAddress!
+        : _currentAddress;
     return _SummaryCardShell(
       trailingHeader: const SizedBox.shrink(),
       children: [
@@ -394,8 +579,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Icons.assignment_outlined,
             AppColors.dashboardClockInGreen,
           ),
-          title: 'Today',
-          trailing: '9:15 AM',
+          title: displayAddress.isNotEmpty ? 'Location' : 'Today',
+          trailing: displayAddress.isNotEmpty
+              ? displayAddress.length > 25
+                  ? '${displayAddress.substring(0, 25)}...'
+                  : displayAddress
+              : (_checkInTime ?? '--'),
         ),
       ],
     );
