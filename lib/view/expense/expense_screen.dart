@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hr_app/configs/components/app_app_bar.dart';
 import 'package:hr_app/configs/components/design/spec_list_tile.dart';
 import 'package:hr_app/configs/components/design/spec_shadows.dart';
+import 'package:hr_app/configs/components/shimmer_loading.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
@@ -110,7 +111,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: AppShimmer(child: ListShimmer(itemCount: 5, withBadge: true)),
+            )
           : _expenses.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(

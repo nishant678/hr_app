@@ -1,17 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:hr_app/configs/components/shimmer_loading.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/repository/attendance_api/attendance_http_api_repository.dart';
 import 'package:hr_app/services/face_attendance/face_attendance_validator.dart';
 import 'package:hr_app/services/face_attendance/ml_camera_input.dart';
-
 class FaceCheckInScreen extends StatefulWidget {
   final double? latitude;
   final double? longitude;
@@ -443,8 +444,32 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     }
 
     if (_initializing) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.white),
+      return const AppShimmer(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 200,
+                height: 280,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(140)),
+                  ),
+                ),
+              ),
+              SizedBox(height: 24),
+              SizedBox(
+                width: 160,
+                height: 14,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.all(Radius.circular(4))),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

@@ -4,6 +4,7 @@ import 'package:hr_app/configs/components/app_app_bar.dart';
 import 'package:hr_app/configs/components/design/spec_list_tile.dart';
 import 'package:hr_app/configs/components/design/spec_segmented_control.dart';
 import 'package:hr_app/configs/components/design/spec_shadows.dart';
+import 'package:hr_app/configs/components/shimmer_loading.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
@@ -167,7 +168,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Text('History', style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700)),
               SizedBox(height: AppDimensions.paddingM),
               if (_loading)
-                const Center(child: CircularProgressIndicator())
+                const AppShimmer(child: ListShimmer(itemCount: 4, withBadge: true))
               else if (_filteredRecords.isEmpty)
                 _buildEmptyState()
               else

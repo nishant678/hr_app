@@ -1,27 +1,20 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'shimmer_loading.dart';
 
 class AppLoading extends StatelessWidget {
-  final double size;
-  final Color? color;
+  final double height;
+  final double width;
 
   const AppLoading({
     super.key,
-    this.size = 30,
-    this.color,
+    this.height = 100,
+    this.width = double.infinity,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        height: size,
-        width: size,
-        child: CircularProgressIndicator(
-          color: color ?? AppColors.primary,
-          strokeWidth: 3,
-        ),
-      ),
+    return const AppShimmer(
+      child: CardShimmer(),
     );
   }
 }

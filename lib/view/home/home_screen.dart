@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hr_app/bloc/home_bloc/home_bloc.dart';
 import 'package:hr_app/configs/components/design/spec_shadows.dart';
+import 'package:hr_app/configs/components/shimmer_loading.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
@@ -287,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           SizedBox(height: 16.h),
           if (_loadingAttendance)
-            const Center(child: CircularProgressIndicator(color: Colors.white))
+            const AppShimmer(child: SummaryCardShimmer())
           else if (_isCheckedOut)
             _buildAttendanceCompleteState()
           else

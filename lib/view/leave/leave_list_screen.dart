@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hr_app/configs/components/shimmer_loading.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
 import 'package:hr_app/model/leave/leave_model.dart';
@@ -83,7 +84,10 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: AppShimmer(child: ListShimmer(itemCount: 5, withBadge: true)),
+            )
           : _leaves.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(
