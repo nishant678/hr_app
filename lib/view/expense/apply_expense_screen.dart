@@ -8,9 +8,6 @@ import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/repository/expense_api/expense_http_api_repository.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
-import 'package:hr_app/utils/app_url.dart';
-import 'package:hr_app/services/session_manager/session_controller.dart';
 
 class ApplyExpenseScreen extends StatefulWidget {
   const ApplyExpenseScreen({super.key});
@@ -123,18 +120,10 @@ class _ApplyExpenseScreenState extends State<ApplyExpenseScreen> {
 
   Future<void> _uploadAttachment(int expenseId) async {
     final file = _selectedFile!;
-    final token = SessionController.token;
-    final uri = Uri.parse('${AppUrl.expensesEndPoint}/$expenseId/attachment');
-
-    final request = http.MultipartRequest('POST', uri);
-    if (token != null && token.isNotEmpty) {
-      request.headers['Authorization'] = 'Bearer $token';
-    }
-    request.files.add(await http.MultipartFile.fromPath('file', file.path!));
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-    if (response.statusCode != 200) {
-      debugPrint('Attachment upload failed: ${response.statusCode} ${response.body}');
+    try {
+      await _expenseRepository.uploadAttachment(expenseId, file.path!);
+    } catch (e) {
+      debugPrint('Attachment upload failed: $e');
     }
   }
 

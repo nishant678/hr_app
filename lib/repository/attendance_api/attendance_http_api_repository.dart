@@ -1,10 +1,8 @@
-import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:hr_app/data/network/base_api_services.dart';
 import 'package:hr_app/data/network/network_api_services.dart';
 import 'package:hr_app/model/attendance/attendance_model.dart';
-import 'package:hr_app/services/session_manager/session_controller.dart';
 import 'package:hr_app/utils/app_url.dart';
-import 'package:http/http.dart' as http;
 import 'attendance_api_repository.dart';
 
 class AttendanceHttpApiRepository implements AttendanceApiRepository {
@@ -17,25 +15,31 @@ class AttendanceHttpApiRepository implements AttendanceApiRepository {
     double? longitude,
     String? locationAddress,
   }) async {
+    final now = DateTime.now();
+    final checkInTime = DateFormat('HH:mm:ss').format(now);
+    final date = DateFormat('yyyy-MM-dd').format(now);
     if (faceImagePath != null) {
-      final token = SessionController.token;
-      final uri = Uri.parse(AppUrl.attendanceCheckInEndPoint + _buildLocationParams(latitude, longitude, locationAddress));
-      final request = http.MultipartRequest('POST', uri);
-      if (token != null && token.isNotEmpty) {
-        request.headers['Authorization'] = 'Bearer $token';
+      final fields = <String, String>{
+        'checkInTime': checkInTime,
+        'date': date,
+      };
+      if (latitude != null) fields['latitude'] = latitude.toString();
+      if (longitude != null) fields['longitude'] = longitude.toString();
+      if (locationAddress != null) fields['locationAddress'] = locationAddress;
+
+      final response = await _apiServices.multipartPostApi(
+        AppUrl.attendanceCheckInEndPoint,
+        filePath: faceImagePath,
+        fileField: 'faceImage',
+        fields: fields,
+      );
+      if (response is Map && response['data'] is Map) {
+        return AttendanceModel.fromJson(response['data']);
       }
-      request.files.add(await http.MultipartFile.fromPath('faceImage', faceImagePath));
-      final streamed = await request.send();
-      final response = await http.Response.fromStream(streamed);
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        if (decoded is Map && decoded['data'] is Map) {
-          return AttendanceModel.fromJson(decoded['data']);
-        }
-      }
-      throw Exception('Check-in failed: ${response.statusCode}');
+      throw Exception('Failed to check in');
     } else {
-      final url = AppUrl.attendanceCheckInEndPoint + _buildLocationParams(latitude, longitude, locationAddress);
+      final url = AppUrl.attendanceCheckInEndPoint
+          + _buildQueryParams(latitude, longitude, locationAddress, checkInTime, date);
       final response = await _apiServices.postApi(url, {});
       if (response is Map && response['data'] is Map) {
         return AttendanceModel.fromJson(response['data']);
@@ -44,21 +48,25 @@ class AttendanceHttpApiRepository implements AttendanceApiRepository {
     }
   }
 
-  String _buildLocationParams(double? lat, double? lng, String? addr) {
-    final params = <String>[];
-    if (lat != null) params.add('latitude=$lat');
-    if (lng != null) params.add('longitude=$lng');
-    if (addr != null) params.add('locationAddress=${Uri.encodeComponent(addr)}');
-    return params.isEmpty ? '' : '?${params.join('&')}';
-  }
-
   @override
   Future<AttendanceModel> checkOut() async {
-    final response = await _apiServices.postApi(AppUrl.attendanceCheckOutEndPoint, {});
+    final now = DateTime.now();
+    final checkOutTime = DateFormat('HH:mm:ss').format(now);
+    final date = DateFormat('yyyy-MM-dd').format(now);
+    final url = '${AppUrl.attendanceCheckOutEndPoint}?checkOutTime=$checkOutTime&date=$date';
+    final response = await _apiServices.postApi(url, {});
     if (response is Map && response['data'] is Map) {
       return AttendanceModel.fromJson(response['data']);
     }
     throw Exception('Failed to check out');
+  }
+
+  String _buildQueryParams(double? lat, double? lng, String? addr, String checkInTime, String date) {
+    final params = <String>['checkInTime=$checkInTime', 'date=$date'];
+    if (lat != null) params.add('latitude=$lat');
+    if (lng != null) params.add('longitude=$lng');
+    if (addr != null) params.add('locationAddress=${Uri.encodeComponent(addr)}');
+    return '?${params.join('&')}';
   }
 
   @override

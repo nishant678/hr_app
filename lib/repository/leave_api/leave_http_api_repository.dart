@@ -24,4 +24,13 @@ class LeaveHttpApiRepository implements LeaveApiRepository {
     }
     throw Exception('Failed to apply leave');
   }
+
+  @override
+  Future<void> uploadAttachment(int leaveId, String filePath) async {
+    await _apiServices.multipartPostApi(
+      '${AppUrl.leavesEndPoint}/$leaveId/attachment',
+      filePath: filePath,
+      fileField: 'file',
+    );
+  }
 }

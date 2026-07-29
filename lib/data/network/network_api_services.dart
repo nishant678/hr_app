@@ -1,175 +1,153 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
+import 'dart:developer';
 
-import 'package:hr_app/data/network/base_api_services.dart';
-import 'package:hr_app/services/session_manager/session_controller.dart';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:dio/dio.dart';
+import 'base_api_services.dart';
 import '../exception/app_exceptions.dart';
+import '../../services/session_manager/session_controller.dart';
 
-/// Class for handling network API requests.
-class NetworkApiService implements BaseApiServices {
-  Map<String, String> _authHeaders([Map<String, String>? extra]) {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    final token = SessionController.token;
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
+class _LogInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    log('[REQ] ${options.method} ${options.uri}', name: 'API');
+    if (options.data != null && options.data is! FormData) {
+      log('[REQ] Body: ${options.data}', name: 'API');
     }
-    if (extra != null) {
-      headers.addAll(extra);
-    }
-    return headers;
+    handler.next(options);
   }
 
-  /// Sends a GET request to the specified [url] and returns the response.
-  ///
-  /// Throws a [NoInternetException] if there is no internet connection.
-  /// Throws a [FetchDataException] if the network request times out.
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    log('[RES] ${response.statusCode} ${response.requestOptions.uri}',
+        name: 'API');
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    log('[ERR] ${err.response?.statusCode} ${err.requestOptions.uri}',
+        name: 'API');
+    log('[ERR] ${err.message}', name: 'API', error: err.error, stackTrace: err.stackTrace);
+    handler.next(err);
+  }
+}
+
+class NetworkApiService implements BaseApiServices {
+  late final Dio _dio;
+
+  NetworkApiService() {
+    _dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ));
+    _dio.interceptors.add(_LogInterceptor());
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final token = SessionController.token;
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+    ));
+  }
+
   @override
   Future<dynamic> getApi(String url) async {
-    if (kDebugMode) {
-      print(url);
-    }
-    dynamic responseJson;
     try {
-      final response = await http
-          .get(Uri.parse(url), headers: _authHeaders())
-          .timeout(const Duration(seconds: 20));
-      responseJson = returnResponse(response);
-    } on SocketException {
-      throw NoInternetException('');
-    } on TimeoutException {
-      throw FetchDataException('Network Request time out');
+      final response = await _dio.get(url);
+      return _returnResponse(response);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
-
-    if (kDebugMode) {
-      print(responseJson);
-    }
-    return responseJson;
   }
 
-  /// Sends a POST request to the specified [url] with the provided [data]
-  /// and returns the response.
-  ///
-  /// Throws a [NoInternetException] if there is no internet connection.
-  /// Throws a [FetchDataException] if the network request times out.
   @override
   Future<dynamic> postApi(String url, dynamic data) async {
-    if (kDebugMode) {
-      print(url);
-      print(data);
-    }
-
-    dynamic responseJson;
     try {
-      final Map<String, String>? headers;
-      final Object body;
-      if (data is String) {
-        body = data;
-        headers = _authHeaders();
-      } else if (data is Map) {
-        body = jsonEncode(data);
-        headers = _authHeaders();
-      } else {
-        body = data.toString();
-        headers = _authHeaders();
-      }
-
-      final http.Response response = await http
-          .post(
-            Uri.parse(url),
-            headers: headers,
-            body: body,
-          )
-          .timeout(const Duration(seconds: 10));
-      responseJson = returnResponse(response);
-    } on SocketException {
-      throw NoInternetException('No Internet Connection');
-    } on TimeoutException {
-      throw FetchDataException('Network Request time out');
+      final response = await _dio.post(url, data: data);
+      return _returnResponse(response);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
-
-    if (kDebugMode) {
-      print(responseJson);
-    }
-    return responseJson;
   }
 
-  /// Sends a PUT request to the specified [url] with the provided [data]
-  /// and returns the response.
   @override
   Future<dynamic> putApi(String url, dynamic data) async {
-    if (kDebugMode) {
-      print(url);
-      print(data);
-    }
-
-    dynamic responseJson;
     try {
-      final Map<String, String>? headers;
-      final Object body;
-      if (data is String) {
-        body = data;
-        headers = _authHeaders();
-      } else if (data is Map) {
-        body = jsonEncode(data);
-        headers = _authHeaders();
-      } else {
-        body = data.toString();
-        headers = _authHeaders();
-      }
-
-      final http.Response response = await http
-          .put(
-            Uri.parse(url),
-            headers: headers,
-            body: body,
-          )
-          .timeout(const Duration(seconds: 10));
-      responseJson = returnResponse(response);
-    } on SocketException {
-      throw NoInternetException('No Internet Connection');
-    } on TimeoutException {
-      throw FetchDataException('Network Request time out');
+      final response = await _dio.put(url, data: data);
+      return _returnResponse(response);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
-
-    if (kDebugMode) {
-      print(responseJson);
-    }
-    return responseJson;
   }
 
-  dynamic _parseError(http.Response response) {
+  @override
+  Future<dynamic> multipartPostApi(
+    String url, {
+    required String filePath,
+    required String fileField,
+    Map<String, String>? fields,
+  }) async {
     try {
-      final json = jsonDecode(response.body);
-      if (json is Map && json.containsKey('error')) {
-        return json;
-      }
-    } catch (_) {}
-    return {'error': response.body};
+      final formData = FormData.fromMap({
+        fileField: await MultipartFile.fromFile(filePath),
+        if (fields != null) ...fields,
+      });
+      final response = await _dio.post(url, data: formData);
+      return _returnResponse(response);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
   }
 
-  dynamic returnResponse(http.Response response) {
-    if (kDebugMode) {
-      print(response.statusCode);
-    }
-
+  dynamic _returnResponse(Response response) {
     switch (response.statusCode) {
       case 200:
-        return jsonDecode(response.body);
+      case 201:
       case 400:
-        return jsonDecode(response.body);
+        return response.data;
       case 401:
+        throw UnauthorisedException(
+          response.data?.toString() ?? 'Unauthorized',
+        );
       case 404:
+        throw FetchDataException(
+          'Not found: ${response.requestOptions.uri}',
+        );
       case 500:
-        return _parseError(response);
+        throw FetchDataException(
+          'Server error: ${response.data?.toString() ?? 'Internal server error'}',
+        );
       default:
-        return {'error': 'Error occurred while communicating with server'};
+        throw FetchDataException(
+          'Error ${response.statusCode}: ${response.data?.toString() ?? 'Unknown error'}',
+        );
+    }
+  }
+
+  AppException _handleDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return FetchDataException('Network Request time out');
+      case DioExceptionType.connectionError:
+        return NoInternetException('');
+      case DioExceptionType.badResponse:
+        if (e.response != null) {
+          return _returnResponse(e.response!) as AppException;
+        }
+        return FetchDataException('Bad response: ${e.message}');
+      case DioExceptionType.cancel:
+        return FetchDataException('Request cancelled');
+      default:
+        return NoInternetException('No Internet Connection');
     }
   }
 }

@@ -24,4 +24,13 @@ class ExpenseHttpApiRepository implements ExpenseApiRepository {
     }
     throw Exception('Failed to apply expense');
   }
+
+  @override
+  Future<void> uploadAttachment(int expenseId, String filePath) async {
+    await _apiServices.multipartPostApi(
+      '${AppUrl.expensesEndPoint}/$expenseId/attachment',
+      filePath: filePath,
+      fileField: 'file',
+    );
+  }
 }

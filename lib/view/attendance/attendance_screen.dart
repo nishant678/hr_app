@@ -180,6 +180,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
+  String? _fmtTime(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return null;
+    try {
+      final parsed = DateFormat('HH:mm:ss').parse(timeStr);
+      return DateFormat('h:mm a').format(parsed).toLowerCase();
+    } catch (_) {
+      return timeStr;
+    }
+  }
+
   Widget _buildTodayCard(AttendanceModel? today, bool isCheckedIn, bool isCheckedOut) {
     return Container(
       width: double.infinity,
@@ -204,12 +214,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           SizedBox(height: 8.h),
           if (isCheckedIn) ...[
             Text(
-              'Check-in: ${today!.checkInTime}',
+              'Check-in: ${_fmtTime(today!.checkInTime)}',
               style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w600),
             ),
             if (today.checkOutTime != null)
               Text(
-                'Check-out: ${today.checkOutTime}',
+                'Check-out: ${_fmtTime(today.checkOutTime)}',
                 style: TextStyle(color: Colors.white70, fontSize: 14.sp),
               ),
             if (today.locationAddress != null && today.locationAddress!.isNotEmpty)
@@ -300,7 +310,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ? record.locationAddress!
         : null;
     final subtitleText = record.checkInTime != null
-        ? '${record.checkInTime} - ${record.checkOutTime ?? "—"}'
+        ? '${_fmtTime(record.checkInTime)} - ${record.checkOutTime != null ? _fmtTime(record.checkOutTime) : "—"}'
         : 'No check-in';
 
     return Column(

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:file_picker/file_picker.dart';
@@ -9,9 +8,6 @@ import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/repository/leave_api/leave_http_api_repository.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
-import 'package:hr_app/utils/app_url.dart';
-import 'package:hr_app/services/session_manager/session_controller.dart';
 
 class ApplyLeaveScreen extends StatefulWidget {
   const ApplyLeaveScreen({super.key});
@@ -192,20 +188,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
 
   Future<void> _uploadAttachment(int leaveId) async {
     final file = _selectedFile!;
-    final token = SessionController.token;
-    final uri = Uri.parse('${AppUrl.leavesEndPoint}/$leaveId/attachment');
-
-    final request = http.MultipartRequest('POST', uri);
-    if (token != null && token.isNotEmpty) {
-      request.headers['Authorization'] = 'Bearer $token';
-    }
-    request.files.add(await http.MultipartFile.fromPath('file', file.path!));
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-    if (response.statusCode != 200) {
-      debugPrint(
-        'Attachment upload failed: ${response.statusCode} ${response.body}',
-      );
+    try {
+      await _leaveRepository.uploadAttachment(leaveId, file.path!);
+    } catch (e) {
+      debugPrint('Attachment upload failed: $e');
     }
   }
 

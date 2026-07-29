@@ -11,4 +11,5 @@ class AppUrl {
   static String todayAttendanceEndPoint = '$baseUrl/api/attendance/today';
   static String attendanceCheckInEndPoint = '$baseUrl/api/attendance/check-in';
   static String attendanceCheckOutEndPoint = '$baseUrl/api/attendance/check-out';
+  static String payslipEndPoint = '$baseUrl/api/payslip';
 }

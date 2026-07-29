@@ -15,6 +15,7 @@ import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/face_checkin/face_check_in_screen.dart';
 import 'package:hr_app/view/leave/apply_leave_screen.dart';
+import 'package:hr_app/view/salary_slip/salary_slip_screen.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -99,7 +100,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchTodayAttendance();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Check-in successful'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Check-in successful'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     }
@@ -111,13 +115,19 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchTodayAttendance();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Check-out successful'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Check-out successful'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Check-out failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Check-out failed: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -127,6 +137,19 @@ class _HomeScreenState extends State<HomeScreen> {
   String? get _checkOutTime => _todayRecord?.checkOutTime;
   bool get _isCheckedIn => _checkInTime != null;
   bool get _isCheckedOut => _checkOutTime != null;
+
+  String? get _formattedCheckIn => _formatTime(_checkInTime);
+  String? get _formattedCheckOut => _formatTime(_checkOutTime);
+
+  String? _formatTime(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return null;
+    try {
+      final parsed = DateFormat('HH:mm:ss').parse(timeStr);
+      return DateFormat('h:mm a').format(parsed).toLowerCase();
+    } catch (_) {
+      return timeStr;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,12 +217,24 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SizedBox(width: AppDimensions.paddingM),
           Expanded(
-            child: Text(
-              'Welcome, Amit Sharma',
-              style: AppTextStyles.h3.copyWith(
-                color: AppColors.white,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome,',
+                  style: AppTextStyles.h3.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Amit Sharma',
+                  style: AppTextStyles.bodyM.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
           IconButton(
@@ -218,7 +253,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildClockInCard() {
-    final displayAddress = _todayRecord?.locationAddress != null &&
+    final displayAddress =
+        _todayRecord?.locationAddress != null &&
             _todayRecord!.locationAddress!.isNotEmpty
         ? _todayRecord!.locationAddress!
         : _currentAddress;
@@ -251,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(width: 8.w),
               if (_isCheckedIn)
                 Text(
-                  _checkInTime!,
+                  _formattedCheckIn ?? _checkInTime!,
                   style: TextStyle(
                     color: AppColors.white,
                     fontSize: 18.sp,
@@ -264,10 +300,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: EdgeInsets.only(top: 4.h),
               child: Text(
-                'Check-out: $_checkOutTime',
+                'Check-out: ${_formattedCheckOut ?? _checkOutTime}',
                 style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+              ),
             ),
-          ),
           if (displayAddress.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 4.h),
@@ -409,11 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
               CircleAvatar(
                 radius: 18.r,
                 backgroundColor: const Color(0xFF8FA8C4),
-                child: Icon(
-                  Icons.person,
-                  color: AppColors.white,
-                  size: 20.sp,
-                ),
+                child: Icon(Icons.person, color: AppColors.white, size: 20.sp),
               ),
             ],
           ),
@@ -439,10 +471,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        SizedBox(width: AppDimensions.paddingM),
+        SizedBox(width: 5.w),
         Expanded(
           child: _quickCard(
-            circularIcon: false,
+            circularIcon: true,
             icon: Icons.folder_copy_outlined,
             iconBg: AppColors.dashboardQuickLeaveOrange.withValues(alpha: 0.15),
             iconColor: AppColors.dashboardQuickLeaveOrange,
@@ -453,10 +485,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        SizedBox(width: AppDimensions.paddingM),
+        SizedBox(width: 5.w),
         Expanded(
           child: _quickCard(
-            circularIcon: false,
+            circularIcon: true,
             icon: Icons.beach_access_outlined,
             iconBg: AppColors.dashboardQuickExpenseCoral.withValues(
               alpha: 0.15,
@@ -466,6 +498,22 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => const ExpenseScreen()),
+            ),
+          ),
+        ),
+        SizedBox(width: 5.w),
+        Expanded(
+          child: _quickCard(
+            circularIcon: true,
+            icon: Icons.receipt_long_outlined,
+            iconBg: AppColors.dashboardQuickExpenseCoral.withValues(
+              alpha: 0.15,
+            ),
+            iconColor: AppColors.dashboardQuickExpenseCoral,
+            label: 'Salary Slip',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const SalarySlipScreen()),
             ),
           ),
         ),
@@ -482,8 +530,8 @@ class _HomeScreenState extends State<HomeScreen> {
     VoidCallback? onTap,
   }) {
     final iconBox = Container(
-      width: circularIcon ? 52.w : null,
-      height: circularIcon ? 52.w : null,
+      width: circularIcon ? 35.w : null,
+      height: circularIcon ? 35.w : null,
       padding: circularIcon ? null : EdgeInsets.all(12.w),
       alignment: Alignment.center,
       decoration: BoxDecoration(
@@ -491,22 +539,22 @@ class _HomeScreenState extends State<HomeScreen> {
         shape: circularIcon ? BoxShape.circle : BoxShape.rectangle,
         borderRadius: circularIcon ? null : BorderRadius.circular(12.r),
       ),
-      child: Icon(icon, color: iconColor, size: circularIcon ? 26.sp : 26.sp),
+      child: Icon(icon, color: iconColor, size: circularIcon ? 20.sp : 20.sp),
     );
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(10.r),
         child: Ink(
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(10.r),
             boxShadow: SpecShadows.card,
           ),
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
+            padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 5.w),
             child: Column(
               children: [
                 iconBox,
@@ -539,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _summaryRow(
           leading: _squareIcon(Icons.login, AppColors.dashboardClockInGreen),
           title: 'Clock-In',
-          trailing: _checkInTime ?? '--',
+          trailing: _formattedCheckIn ?? _checkInTime ?? '--',
         ),
         _summaryDivider(),
         _summaryRow(
@@ -548,7 +596,7 @@ class _HomeScreenState extends State<HomeScreen> {
             AppColors.dashboardQuickExpenseCoral,
           ),
           title: 'Clock-Out',
-          trailing: _checkOutTime ?? '--',
+          trailing: _formattedCheckOut ?? _checkOutTime ?? '--',
         ),
         _summaryDivider(),
         _summaryRow(
@@ -567,7 +615,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSecondSummaryCard() {
-    final displayAddress = _todayRecord?.locationAddress != null &&
+    final displayAddress =
+        _todayRecord?.locationAddress != null &&
             _todayRecord!.locationAddress!.isNotEmpty
         ? _todayRecord!.locationAddress!
         : _currentAddress;
@@ -583,9 +632,9 @@ class _HomeScreenState extends State<HomeScreen> {
           title: displayAddress.isNotEmpty ? 'Location' : 'Today',
           trailing: displayAddress.isNotEmpty
               ? displayAddress.length > 25
-                  ? '${displayAddress.substring(0, 25)}...'
-                  : displayAddress
-              : (_checkInTime ?? '--'),
+                    ? '${displayAddress.substring(0, 25)}...'
+                    : displayAddress
+              : (_formattedCheckIn ?? _checkInTime ?? '--'),
         ),
       ],
     );
@@ -598,8 +647,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _squareIcon(IconData icon, Color iconColor, {Color? background}) {
     final bg = background ?? iconColor.withValues(alpha: 0.15);
     return Container(
-      width: 40.w,
-      height: 40.w,
+      width: 35.w,
+      height: 35.w,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
@@ -626,7 +675,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Text(
               title,
-              style: AppTextStyles.labelL.copyWith(
+              style: AppTextStyles.labelM.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
@@ -634,7 +683,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Text(
             trailing,
-            style: AppTextStyles.labelL.copyWith(
+            style: AppTextStyles.labelS.copyWith(
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
@@ -678,7 +727,9 @@ class _SummaryCardShell extends StatelessWidget {
               children: [
                 Text(
                   "Today's Summary",
-                  style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700),
+                  style: AppTextStyles.labelL.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 trailingHeader,
               ],
