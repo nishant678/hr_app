@@ -9,17 +9,22 @@ import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
 import 'package:hr_app/model/attendance/attendance_model.dart';
+import 'package:hr_app/model/user/user_profile_model.dart';
 import 'package:hr_app/repository/attendance_api/attendance_http_api_repository.dart';
+import 'package:hr_app/repository/profile_api/profile_http_api_repository.dart';
 import 'package:hr_app/services/location/address_service.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/face_checkin/face_check_in_screen.dart';
 import 'package:hr_app/view/leave/apply_leave_screen.dart';
+import 'package:hr_app/view/asset/asset_screen.dart';
 import 'package:hr_app/view/salary_slip/salary_slip_screen.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onMenuTap;
+
+  const HomeScreen({super.key, this.onMenuTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -27,9 +32,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _attendanceRepo = AttendanceHttpApiRepository();
+  final _profileRepo = ProfileHttpApiRepository();
   final _addressService = AddressService();
 
   AttendanceModel? _todayRecord;
+  UserProfileModel? _userProfile;
   bool _loadingAttendance = true;
   String _currentAddress = '';
   double? _currentLat;
@@ -40,6 +47,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     context.read<HomeBloc>().add(const LoadHomeData());
     _fetchTodayAttendance();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final profile = await _profileRepo.getProfile();
+      if (mounted) setState(() => _userProfile = profile);
+    } catch (_) {}
   }
 
   Future<void> _fetchTodayAttendance() async {
@@ -164,11 +179,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      AppDimensions.paddingL,
-                      AppDimensions.paddingL,
-                      AppDimensions.paddingL,
-                      AppDimensions.paddingXXL,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppDimensions.paddingL,
+                      vertical: AppDimensions.paddingL,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,61 +206,53 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        AppDimensions.paddingL,
-        52.h,
-        AppDimensions.paddingL,
-        24.h,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.dashboardHeaderBlue,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
+      child: SafeArea(
+        top: true,
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppDimensions.paddingL,
+            vertical: AppDimensions.paddingS,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => widget.onMenuTap?.call(),
+                child: Icon(Icons.menu, color: AppColors.primary, size: 28.sp),
+              ),
+              SizedBox(width: AppDimensions.paddingM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Work Book',
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(6.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.notifications_none,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 24.r,
-            backgroundImage: const AssetImage('assets/profile_icon.png'),
-          ),
-          SizedBox(width: AppDimensions.paddingM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome,',
-                  style: AppTextStyles.h3.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'Amit Sharma',
-                  style: AppTextStyles.bodyM.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            icon: Icon(
-              Icons.interests_outlined,
-              color: AppColors.white,
-              size: 22.sp,
-            ),
-            onPressed: () {},
-          ),
-        ],
       ),
     );
   }
@@ -455,69 +460,82 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _quickCard(
+    final cards = [
+      _quickCardData(
+        Icons.check,
+        AppColors.dashboardClockInGreen.withValues(alpha: 0.18),
+        AppColors.dashboardClockInGreen,
+        'Attendance',
+        const AttendanceScreen(),
+      ),
+      _quickCardData(
+        Icons.folder_copy_outlined,
+        AppColors.dashboardQuickLeaveOrange.withValues(alpha: 0.15),
+        AppColors.dashboardQuickLeaveOrange,
+        'Leave',
+        const ApplyLeaveScreen(),
+      ),
+      _quickCardData(
+        Icons.beach_access_outlined,
+        AppColors.dashboardQuickExpenseCoral.withValues(alpha: 0.15),
+        AppColors.dashboardQuickExpenseCoral,
+        'Expense',
+        const ExpenseScreen(),
+      ),
+      _quickCardData(
+        Icons.receipt_long_outlined,
+        AppColors.dashboardQuickExpenseCoral.withValues(alpha: 0.15),
+        AppColors.dashboardQuickExpenseCoral,
+        'Salary Slip',
+        const SalarySlipScreen(),
+      ),
+      _quickCardData(
+        Icons.inventory_2_outlined,
+        AppColors.primary.withValues(alpha: 0.15),
+        AppColors.primary,
+        'Assets',
+        const AssetScreen(),
+      ),
+    ];
+    return SizedBox(
+      height: 85.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: cards.length,
+        separatorBuilder: (_, __) => SizedBox(width: 5.w),
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        itemBuilder: (_, i) {
+          final c = cards[i];
+          return _quickCard(
             circularIcon: true,
-            icon: Icons.check,
-            iconBg: AppColors.dashboardClockInGreen.withValues(alpha: 0.18),
-            iconColor: AppColors.dashboardClockInGreen,
-            label: 'Attendance',
+            icon: c.icon,
+            iconBg: c.iconBg,
+            iconColor: c.iconColor,
+            label: c.label,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(builder: (_) => const AttendanceScreen()),
+              MaterialPageRoute<void>(builder: (_) => c.screen),
             ),
-          ),
-        ),
-        SizedBox(width: 5.w),
-        Expanded(
-          child: _quickCard(
-            circularIcon: true,
-            icon: Icons.folder_copy_outlined,
-            iconBg: AppColors.dashboardQuickLeaveOrange.withValues(alpha: 0.15),
-            iconColor: AppColors.dashboardQuickLeaveOrange,
-            label: 'Leave',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const ApplyLeaveScreen()),
-            ),
-          ),
-        ),
-        SizedBox(width: 5.w),
-        Expanded(
-          child: _quickCard(
-            circularIcon: true,
-            icon: Icons.beach_access_outlined,
-            iconBg: AppColors.dashboardQuickExpenseCoral.withValues(
-              alpha: 0.15,
-            ),
-            iconColor: AppColors.dashboardQuickExpenseCoral,
-            label: 'Expense',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const ExpenseScreen()),
-            ),
-          ),
-        ),
-        SizedBox(width: 5.w),
-        Expanded(
-          child: _quickCard(
-            circularIcon: true,
-            icon: Icons.receipt_long_outlined,
-            iconBg: AppColors.dashboardQuickExpenseCoral.withValues(
-              alpha: 0.15,
-            ),
-            iconColor: AppColors.dashboardQuickExpenseCoral,
-            label: 'Salary Slip',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const SalarySlipScreen()),
-            ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
+    );
+  }
+
+  ({IconData icon, Color iconBg, Color iconColor, String label, Widget screen})
+  _quickCardData(
+    IconData icon,
+    Color iconBg,
+    Color iconColor,
+    String label,
+    Widget screen,
+  ) {
+    return (
+      icon: icon,
+      iconBg: iconBg,
+      iconColor: iconColor,
+      label: label,
+      screen: screen,
     );
   }
 

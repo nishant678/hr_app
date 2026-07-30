@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hr_app/configs/components/design/spec_shadows.dart';
+import 'package:hr_app/configs/components/drawer/app_drawer.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
+import 'package:hr_app/repository/profile_api/profile_http_api_repository.dart';
+import 'package:hr_app/services/session_manager/session_controller.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/home/home_screen.dart';
 import 'package:hr_app/view/leave/leave_list_screen.dart';
+import 'package:hr_app/view/login/login_screen.dart';
+import 'package:hr_app/model/user/user_profile_model.dart';
 
 class BottomBar extends StatefulWidget {
   const BottomBar({super.key});
@@ -17,14 +22,43 @@ class BottomBar extends StatefulWidget {
 }
 
 class _BottomBarState extends State<BottomBar> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _profileRepo = ProfileHttpApiRepository();
   int _selectedIndex = 0;
+  UserProfileModel? _userProfile;
 
-  static const List<Widget> _tabs = <Widget>[
-    HomeScreen(),
-    AttendanceScreen(),
-    LeaveListScreen(),
-    ExpenseScreen(),
-  ];
+  late final List<Widget> _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = <Widget>[
+      HomeScreen(onMenuTap: _openDrawer),
+      const AttendanceScreen(),
+      const LeaveListScreen(),
+      const ExpenseScreen(),
+    ];
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final profile = await _profileRepo.getProfile();
+      if (mounted) setState(() => _userProfile = profile);
+    } catch (_) {}
+  }
+
+  void _openDrawer() {
+    _scaffoldKey.currentState?.openDrawer();
+  }
+
+  void _handleLogout() {
+    SessionController().clearSession();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -35,6 +69,8 @@ class _BottomBarState extends State<BottomBar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: AppDrawer(profile: _userProfile, onLogout: _handleLogout),
       body: _tabs[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
