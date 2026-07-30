@@ -19,126 +19,138 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildProfileHeader(context),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _menuItem(
-                  context,
-                  Icons.dashboard_outlined,
-                  'Dashboard',
-                  () => Navigator.pop(context),
-                ),
-                _menuItem(context, Icons.person_outline, 'Profile', () {
-                  if (profile == null) return;
-                  Navigator.pop(context);
-                  Future.microtask(() {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => UserDetailsScreen(profile: profile!),
-                      ),
-                    );
-                  });
-                }),
-                _menuItem(
-                  context,
-                  Icons.check_circle_outline,
-                  'Attendance',
-                  () {
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Drawer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildProfileHeader(context),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _menuItem(
+                    context,
+                    Icons.dashboard_outlined,
+                    'Dashboard',
+                    () => Navigator.pop(context),
+                  ),
+                  _menuItem(context, Icons.person_outline, 'Profile', () {
+                    if (profile == null) return;
                     Navigator.pop(context);
                     Future.microtask(() {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const AttendanceScreen(),
+                          builder: (_) => UserDetailsScreen(profile: profile!),
                         ),
                       );
                     });
-                  },
-                ),
-                _menuItem(context, Icons.beach_access_outlined, 'Leave', () {
-                  Navigator.pop(context);
-                  Future.microtask(() {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ApplyLeaveScreen(),
-                      ),
-                    );
-                  });
-                }),
-                _menuItem(context, Icons.receipt_long_outlined, 'Expense', () {
-                  Navigator.pop(context);
-                  Future.microtask(() {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ExpenseScreen()),
-                    );
-                  });
-                }),
-                _menuItem(context, Icons.payments_outlined, 'Salary Slip', () {
-                  Navigator.pop(context);
-                  Future.microtask(() {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SalarySlipScreen(),
-                      ),
-                    );
-                  });
-                }),
-                _menuItem(context, Icons.inventory_2_outlined, 'Assets', () {
-                  Navigator.pop(context);
-                  Future.microtask(() {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AssetScreen()),
-                    );
-                  });
-                }),
-                _menuItem(
-                  context,
-                  Icons.task_alt_outlined,
-                  'Tasks',
-                  () => Navigator.pop(context),
-                ),
-                _menuItem(
-                  context,
-                  Icons.calendar_today_outlined,
-                  'Calendar',
-                  () => Navigator.pop(context),
-                ),
-                _menuItem(
-                  context,
-                  Icons.message_outlined,
-                  'Messages',
-                  () => Navigator.pop(context),
-                ),
-                _menuItem(
-                  context,
-                  Icons.settings_outlined,
-                  'Settings',
-                  () => Navigator.pop(context),
-                ),
-                _menuItem(
-                  context,
-                  Icons.help_outline,
-                  'Help & Support',
-                  () => Navigator.pop(context),
-                ),
-              ],
+                  }),
+                  _menuItem(
+                    context,
+                    Icons.check_circle_outline,
+                    'Attendance',
+                    () {
+                      Navigator.pop(context);
+                      Future.microtask(() {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AttendanceScreen(),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  _menuItem(context, Icons.beach_access_outlined, 'Leave', () {
+                    Navigator.pop(context);
+                    Future.microtask(() {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ApplyLeaveScreen(),
+                        ),
+                      );
+                    });
+                  }),
+                  _menuItem(
+                    context,
+                    Icons.receipt_long_outlined,
+                    'Expense',
+                    () {
+                      Navigator.pop(context);
+                      Future.microtask(() {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ExpenseScreen(),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  _menuItem(
+                    context,
+                    Icons.payments_outlined,
+                    'Salary Slip',
+                    () {
+                      Navigator.pop(context);
+                      Future.microtask(() {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SalarySlipScreen(),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  _menuItem(context, Icons.inventory_2_outlined, 'Assets', () {
+                    Navigator.pop(context);
+                    Future.microtask(() {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AssetScreen()),
+                      );
+                    });
+                  }),
+                  _menuItem(
+                    context,
+                    Icons.task_alt_outlined,
+                    'Tasks',
+                    () => Navigator.pop(context),
+                  ),
+                  _menuItem(
+                    context,
+                    Icons.calendar_today_outlined,
+                    'Calendar',
+                    () => Navigator.pop(context),
+                  ),
+                  _menuItem(
+                    context,
+                    Icons.message_outlined,
+                    'Messages',
+                    () => Navigator.pop(context),
+                  ),
+                  _menuItem(
+                    context,
+                    Icons.settings_outlined,
+                    'Settings',
+                    () => Navigator.pop(context),
+                  ),
+                  _menuItem(
+                    context,
+                    Icons.help_outline,
+                    'Help & Support',
+                    () => Navigator.pop(context),
+                  ),
+                ],
+              ),
             ),
-          ),
-          SafeArea(
-            top: false,
-            bottom: true,
-            child: Padding(
+            Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: AppDimensions.paddingL,
                 vertical: AppDimensions.paddingL,
@@ -157,8 +169,8 @@ class AppDrawer extends StatelessWidget {
                 boldText: true,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

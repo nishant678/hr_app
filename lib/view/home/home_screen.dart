@@ -9,15 +9,12 @@ import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
 import 'package:hr_app/model/attendance/attendance_model.dart';
-import 'package:hr_app/model/user/user_profile_model.dart';
 import 'package:hr_app/repository/attendance_api/attendance_http_api_repository.dart';
-import 'package:hr_app/repository/profile_api/profile_http_api_repository.dart';
 import 'package:hr_app/services/location/address_service.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/face_checkin/face_check_in_screen.dart';
 import 'package:hr_app/view/leave/apply_leave_screen.dart';
-import 'package:hr_app/view/asset/asset_screen.dart';
 import 'package:hr_app/view/salary_slip/salary_slip_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -32,11 +29,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _attendanceRepo = AttendanceHttpApiRepository();
-  final _profileRepo = ProfileHttpApiRepository();
   final _addressService = AddressService();
 
   AttendanceModel? _todayRecord;
-  UserProfileModel? _userProfile;
   bool _loadingAttendance = true;
   String _currentAddress = '';
   double? _currentLat;
@@ -47,14 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     context.read<HomeBloc>().add(const LoadHomeData());
     _fetchTodayAttendance();
-    _fetchProfile();
-  }
-
-  Future<void> _fetchProfile() async {
-    try {
-      final profile = await _profileRepo.getProfile();
-      if (mounted) setState(() => _userProfile = profile);
-    } catch (_) {}
   }
 
   Future<void> _fetchTodayAttendance() async {
@@ -489,24 +476,12 @@ class _HomeScreenState extends State<HomeScreen> {
         'Salary Slip',
         const SalarySlipScreen(),
       ),
-      _quickCardData(
-        Icons.inventory_2_outlined,
-        AppColors.primary.withValues(alpha: 0.15),
-        AppColors.primary,
-        'Assets',
-        const AssetScreen(),
-      ),
     ];
-    return SizedBox(
-      height: 85.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: cards.length,
-        separatorBuilder: (_, __) => SizedBox(width: 5.w),
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        itemBuilder: (_, i) {
-          final c = cards[i];
-          return _quickCard(
+    return Row(
+      children: cards.map((c) => Expanded(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          child: _quickCard(
             circularIcon: true,
             icon: c.icon,
             iconBg: c.iconBg,
@@ -516,9 +491,9 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               MaterialPageRoute<void>(builder: (_) => c.screen),
             ),
-          );
-        },
-      ),
+          ),
+        ),
+      )).toList(),
     );
   }
 
