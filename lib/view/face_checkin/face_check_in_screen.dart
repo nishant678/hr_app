@@ -13,6 +13,8 @@ import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/repository/attendance_api/attendance_http_api_repository.dart';
 import 'package:hr_app/services/face_attendance/face_attendance_validator.dart';
 import 'package:hr_app/services/face_attendance/ml_camera_input.dart';
+import 'package:image/image.dart' as img;
+
 class FaceCheckInScreen extends StatefulWidget {
   final double? latitude;
   final double? longitude;
@@ -174,6 +176,50 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     return sz;
   }
 
+  // Variance-of-Laplacian sharpness on a downscaled grayscale image.
+  // null when decode fails (gate skipped); lower = blurrier.
+  int? _blurScore(Uint8List bytes) {
+    try {
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return null;
+      final small = img.copyResize(decoded, width: 320);
+      final grey = img.grayscale(small);
+      const kernel = <List<int>>[
+        [0, 1, 0],
+        [1, -4, 1],
+        [0, 1, 0],
+      ];
+      var sumSq = 0.0;
+      var count = 0;
+      final w = grey.width;
+      final h = grey.height;
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          var lap = 0.0;
+          for (var ky = -1; ky <= 1; ky++) {
+            for (var kx = -1; kx <= 1; kx++) {
+              lap += grey.getPixel(x + kx, y + ky).r * kernel[ky + 1][kx + 1];
+            }
+          }
+          sumSq += lap * lap;
+          count++;
+        }
+      }
+      return count == 0 ? null : (sumSq / count).round();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, String> _deviceInfoMap() {
+    return {
+      'os': Platform.operatingSystem,
+      'osVersion': Platform.operatingSystemVersion,
+      'deviceModel': Platform.localHostname,
+      'appPlatform': 'flutter',
+    };
+  }
+
   Future<void> _captureAndVerify() async {
     if (_completed || !mounted || _capturing) return;
     final controller = _controller;
@@ -228,6 +274,18 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
         return;
       }
 
+      // Best-frame gate: reject blurry captures so verification quality is good
+      final blurScore = _blurScore(bytes);
+      if (blurScore != null && blurScore < 120) {
+        setState(() {
+          _hint = 'Photo blurry hai — thoda ruk kar dobara capture karein / '
+              'Blurry photo — hold steady and retake (sharpness $blurScore)';
+          _capturing = false;
+        });
+        await controller.startImageStream(_onCameraImage);
+        return;
+      }
+
       // Face validated — call check-in API
       setState(() => _hint = 'Check-in ho raha hai… / Checking in…');
 
@@ -237,6 +295,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
           latitude: widget.latitude,
           longitude: widget.longitude,
           locationAddress: widget.locationAddress,
+          deviceInfo: _deviceInfoMap(),
         );
         _completed = true;
         if (mounted) Navigator.of(context).pop(true);

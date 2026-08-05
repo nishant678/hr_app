@@ -1,5 +1,6 @@
 import 'dart:ui' show Size;
 
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 /// Result of ML Kit–based checks for attendance (single face, pose, eyes, no-mask heuristic).
@@ -11,7 +12,8 @@ class FaceCheckResult {
 
   static const FaceCheckResult noFace = FaceCheckResult(
     ok: false,
-    message: 'Chehra camera ke saamne laayein / Bring your face in front of the camera',
+    message:
+        'Chehra camera ke saamne laayein / Bring your face in front of the camera',
   );
 
   static const FaceCheckResult multipleFaces = FaceCheckResult(
@@ -22,6 +24,15 @@ class FaceCheckResult {
 
 class FaceAttendanceValidator {
   FaceAttendanceValidator._();
+
+  @visibleForTesting
+  static bool looksLikeMaskCovered({
+    required bool hasNoseLandmark,
+    required bool hasMouthLandmark,
+    required int contourScore,
+  }) {
+    return !hasNoseLandmark || !hasMouthLandmark || contourScore < 32;
+  }
 
   /// Validates [face] for check-in. Uses landmarks, classification, contours where available.
   static FaceCheckResult validate(Face face, Size imageSize) {
@@ -58,25 +69,11 @@ class FaceAttendanceValidator {
       );
     }
 
-    final left = face.leftEyeOpenProbability;
-    final right = face.rightEyeOpenProbability;
-    if (left != null && right != null) {
-      if (left < 0.72 || right < 0.72) {
-        return const FaceCheckResult(
-          ok: false,
-          message:
-              'Dono aankhein khuli rakhein; mask / dhundhla chehra avoid karein / Keep both eyes open; avoid mask or blur',
-        );
-      }
-    }
-
     final nose = face.landmarks[FaceLandmarkType.noseBase];
-    if (nose == null) {
-      return const FaceCheckResult(
-        ok: false,
-        message: 'Naak/nak clear nahi — mask hataein / Nose not clear — remove mask',
-      );
-    }
+    final mouth =
+        face.landmarks[FaceLandmarkType.bottomMouth] ??
+        face.landmarks[FaceLandmarkType.leftMouth] ??
+        face.landmarks[FaceLandmarkType.rightMouth];
 
     int contourScore = 0;
     void addContour(FaceContourType t) {
@@ -89,12 +86,28 @@ class FaceAttendanceValidator {
     addContour(FaceContourType.upperLipBottom);
     addContour(FaceContourType.lowerLipTop);
 
-    if (contourScore < 28) {
+    if (looksLikeMaskCovered(
+      hasNoseLandmark: nose != null,
+      hasMouthLandmark: mouth != null,
+      contourScore: contourScore,
+    )) {
       return const FaceCheckResult(
         ok: false,
         message:
             'Chehra dhaka hua lag raha hai — mask / hath hataein / Face looks covered — remove mask or hand',
       );
+    }
+
+    final left = face.leftEyeOpenProbability;
+    final right = face.rightEyeOpenProbability;
+    if (left != null && right != null) {
+      if (left < 0.72 || right < 0.72) {
+        return const FaceCheckResult(
+          ok: false,
+          message:
+              'Dono aankhein khuli rakhein; mask / dhundhla chehra avoid karein / Keep both eyes open; avoid mask or blur',
+        );
+      }
     }
 
     return const FaceCheckResult(

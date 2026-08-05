@@ -6,6 +6,7 @@ abstract class AttendanceApiRepository {
     double? latitude,
     double? longitude,
     String? locationAddress,
+    Map<String, String>? deviceInfo,
   });
   Future<AttendanceModel> checkOut();
   Future<List<AttendanceModel>> getMyAttendance();

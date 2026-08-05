@@ -1,6 +1,6 @@
 class AppUrl {
-  static var baseUrl = 'https://hr-spring-backend.onrender.com';
-  // static var baseUrl = 'http://10.152.0.62:8080';
+  static var baseUrl = 'http://10.104.70.61:8080';
+  // static var baseUrl = 'https://hr-spring-backend.onrender.com';
   static var loginEndPoint = '$baseUrl/api/auth/login';
   static var leavesEndPoint = '$baseUrl/api/leaves';
   static String myLeavesEndPoint = '$baseUrl/api/leaves/my';
@@ -10,7 +10,8 @@ class AppUrl {
   static String myAttendanceEndPoint = '$baseUrl/api/attendance/my';
   static String todayAttendanceEndPoint = '$baseUrl/api/attendance/today';
   static String attendanceCheckInEndPoint = '$baseUrl/api/attendance/check-in';
-  static String attendanceCheckOutEndPoint = '$baseUrl/api/attendance/check-out';
+  static String attendanceCheckOutEndPoint =
+      '$baseUrl/api/attendance/check-out';
   static String payslipEndPoint = '$baseUrl/api/payslip';
   static String myAssetsEndPoint = '$baseUrl/api/assets/my';
   static String profileEndPoint = '$baseUrl/api/employee/profile';

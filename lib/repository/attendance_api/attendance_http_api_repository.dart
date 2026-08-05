@@ -14,6 +14,7 @@ class AttendanceHttpApiRepository implements AttendanceApiRepository {
     double? latitude,
     double? longitude,
     String? locationAddress,
+    Map<String, String>? deviceInfo,
   }) async {
     final now = DateTime.now();
     final checkInTime = DateFormat('HH:mm:ss').format(now);
@@ -26,6 +27,9 @@ class AttendanceHttpApiRepository implements AttendanceApiRepository {
       if (latitude != null) fields['latitude'] = latitude.toString();
       if (longitude != null) fields['longitude'] = longitude.toString();
       if (locationAddress != null) fields['locationAddress'] = locationAddress;
+      if (deviceInfo != null) {
+        deviceInfo.forEach((k, v) => fields['device.$k'] = v);
+      }
 
       final response = await _apiServices.multipartPostApi(
         AppUrl.attendanceCheckInEndPoint,

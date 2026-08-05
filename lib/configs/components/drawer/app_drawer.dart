@@ -8,8 +8,8 @@ import 'package:hr_app/view/asset/asset_screen.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
 import 'package:hr_app/view/leave/apply_leave_screen.dart';
+import 'package:hr_app/view/profile/profile_screen.dart';
 import 'package:hr_app/view/salary_slip/salary_slip_screen.dart';
-import 'package:hr_app/view/user_details/user_details_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final UserProfileModel? profile;
@@ -38,13 +38,12 @@ class AppDrawer extends StatelessWidget {
                     () => Navigator.pop(context),
                   ),
                   _menuItem(context, Icons.person_outline, 'Profile', () {
-                    if (profile == null) return;
                     Navigator.pop(context);
                     Future.microtask(() {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => UserDetailsScreen(profile: profile!),
+                          builder: (_) => ProfileScreen(profile: profile),
                         ),
                       );
                     });
@@ -194,15 +193,28 @@ class AppDrawer extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 25.r,
-              backgroundImage:
-                  profile != null &&
-                      profile!.profilePhoto != null &&
-                      profile!.profilePhoto!.isNotEmpty
-                  ? NetworkImage(profile!.profilePhoto!)
-                  : const AssetImage('assets/profile_icon.png')
-                        as ImageProvider,
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Future.microtask(() {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(profile: profile),
+                    ),
+                  );
+                });
+              },
+              child: CircleAvatar(
+                radius: 25.r,
+                backgroundImage:
+                    profile != null &&
+                        profile!.profilePhoto != null &&
+                        profile!.profilePhoto!.isNotEmpty
+                    ? NetworkImage(profile!.profilePhoto!)
+                    : const AssetImage('assets/profile_icon.png')
+                          as ImageProvider,
+              ),
             ),
             SizedBox(width: AppDimensions.paddingM),
             Column(
