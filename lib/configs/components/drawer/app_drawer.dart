@@ -4,6 +4,7 @@ import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
 import 'package:hr_app/model/user/user_profile_model.dart';
+import 'package:hr_app/utils/app_url.dart';
 import 'package:hr_app/view/asset/asset_screen.dart';
 import 'package:hr_app/view/attendance/attendance_screen.dart';
 import 'package:hr_app/view/expense/expense_screen.dart';
@@ -208,10 +209,8 @@ class AppDrawer extends StatelessWidget {
               child: CircleAvatar(
                 radius: 25.r,
                 backgroundImage:
-                    profile != null &&
-                        profile!.profilePhoto != null &&
-                        profile!.profilePhoto!.isNotEmpty
-                    ? NetworkImage(profile!.profilePhoto!)
+                    profile != null && AppUrl.resolve(profile!.profilePhoto).isNotEmpty
+                    ? NetworkImage(AppUrl.resolve(profile!.profilePhoto!))
                     : const AssetImage('assets/profile_icon.png')
                           as ImageProvider,
               ),

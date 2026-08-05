@@ -15,4 +15,12 @@ class AppUrl {
   static String payslipEndPoint = '$baseUrl/api/payslip';
   static String myAssetsEndPoint = '$baseUrl/api/assets/my';
   static String profileEndPoint = '$baseUrl/api/employee/profile';
+  static String profilePhotoUpdateEndPoint =
+      '$baseUrl/api/employee/profile/photo';
+
+  static String resolve(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    return '$baseUrl$path';
+  }
 }

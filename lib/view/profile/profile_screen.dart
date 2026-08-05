@@ -6,6 +6,8 @@ import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
 import 'package:hr_app/model/user/user_profile_model.dart';
 import 'package:hr_app/repository/profile_api/profile_http_api_repository.dart';
+import 'package:hr_app/utils/app_url.dart';
+import 'package:hr_app/view/profile/selfie_capture_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserProfileModel? profile;
@@ -164,7 +166,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showUpdatePhotoSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: AppDimensions.paddingL),
+              Text(
+                'Update Profile Photo',
+                style: AppTextStyles.labelL.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.camera_alt,
+                  color: AppColors.dashboardHeaderBlue,
+                ),
+                title: const Text('Take Selfie'),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await _takeAndUploadSelfie();
+                },
+              ),
+              SizedBox(height: AppDimensions.paddingM),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _takeAndUploadSelfie() async {
+    final path = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const SelfieCaptureScreen()),
+    );
+    if (path == null || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Photo update ho raha hai… / Updating…')),
+    );
+    try {
+      final updated = await _profileRepo.updateProfilePhoto(path);
+      if (mounted) {
+        setState(() => _profile = updated);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile photo updated / Profile photo update ho gayi'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update fail: $e\nTry again'),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildHeader(UserProfileModel profile) {
+    final photoUrl = AppUrl.resolve(profile.profilePhoto);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
@@ -182,11 +253,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 44.r,
-            backgroundImage: profile.profilePhoto != null && profile.profilePhoto!.isNotEmpty
-                ? NetworkImage(profile.profilePhoto!)
-                : const AssetImage('assets/profile_icon.png') as ImageProvider,
+          GestureDetector(
+            onTap: _showUpdatePhotoSheet,
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 44.r,
+                  backgroundImage: photoUrl.isNotEmpty
+                      ? NetworkImage(photoUrl)
+                      : const AssetImage('assets/profile_icon.png')
+                            as ImageProvider,
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: EdgeInsets.all(6.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.dashboardHeaderBlue),
+                    ),
+                    child: Icon(
+                      Icons.camera_alt,
+                      size: 18.sp,
+                      color: AppColors.dashboardHeaderBlue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           SizedBox(height: AppDimensions.paddingM),
           Text(

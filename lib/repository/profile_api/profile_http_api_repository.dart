@@ -15,4 +15,17 @@ class ProfileHttpApiRepository implements ProfileApiRepository {
     }
     throw Exception('Failed to fetch profile');
   }
+
+  @override
+  Future<UserProfileModel> updateProfilePhoto(String imagePath) async {
+    final response = await _apiServices.multipartPostApi(
+      AppUrl.profilePhotoUpdateEndPoint,
+      filePath: imagePath,
+      fileField: 'image',
+    );
+    if (response is Map && response['data'] is Map) {
+      return UserProfileModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update profile photo');
+  }
 }
