@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -205,6 +207,7 @@ class LocationTrackingService extends GetxService {
 
   Future<void> initialize() async {
     WidgetsFlutterBinding.ensureInitialized();
+    await _ensureNotificationChannel();
     await _service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: _backgroundServiceOnStart,
@@ -229,10 +232,55 @@ class LocationTrackingService extends GetxService {
     }
   }
 
+  /// Creates the notification channel used by the foreground service.
+  /// Without a created channel, startForeground throws
+  /// CannotPostForegroundServiceNotificationException.
+  Future<void> _ensureNotificationChannel() async {
+    if (!Platform.isAndroid) return;
+    try {
+      const channel = AndroidNotificationChannel(
+        'attendance_tracking_channel',
+        'Attendance tracking',
+        description: 'Background location tracking notifications',
+        importance: Importance.low,
+      );
+      final android = FlutterLocalNotificationsPlugin()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await android?.createNotificationChannel(channel);
+    } catch (e) {
+      AppLogger.warn('Notification channel setup failed: $e');
+    }
+  }
+
+  /// Android 13+ requires POST_NOTIFICATIONS for a foreground service
+  /// notification; without it startForeground throws a fatal exception.
+  Future<bool> _notificationPermissionGranted() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final android = FlutterLocalNotificationsPlugin()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (android == null) return true;
+      final result = await android.requestNotificationsPermission();
+      return result ?? false;
+    } catch (e) {
+      AppLogger.warn('Notification permission check failed: $e');
+      return false;
+    }
+  }
+
   Future<void> startTracking(String employeeId) async {
     final permissionGranted = await permissionService.requestLocationPermission();
     if (!permissionGranted) {
       AppLogger.warn('Location permission denied. Tracking will not start.');
+      return;
+    }
+
+    final canPostNotification = await _notificationPermissionGranted();
+    if (!canPostNotification) {
+      AppLogger.warn(
+          'Notification permission denied. Foreground tracking skipped to avoid crash.');
       return;
     }
 

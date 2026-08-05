@@ -50,6 +50,9 @@
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="location"
             tools:replace="android:foregroundServiceType" />
+        <receiver
+            android:name="id.flutter.flutter_background_service.BootReceiver"
+            tools:node="remove" />
     </application> 
     <queries>
         <intent>
