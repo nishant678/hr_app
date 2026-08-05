@@ -112,23 +112,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleCheckOut() async {
-    try {
-      await _attendanceRepo.checkOut();
+    await _fetchCurrentLocation();
+    if (!mounted) return;
+
+    final verified = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FaceCheckInScreen(
+          isCheckOut: true,
+          latitude: _currentLat,
+          longitude: _currentLng,
+          locationAddress: _currentAddress.isNotEmpty ? _currentAddress : null,
+        ),
+      ),
+    );
+
+    if (verified == true) {
       _fetchTodayAttendance();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Check-out successful'),
             backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Check-out failed: $e'),
-            backgroundColor: Colors.red,
           ),
         );
       }

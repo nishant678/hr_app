@@ -60,18 +60,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Future<void> _handleCheckOut() async {
-    try {
-      await _attendanceRepo.checkOut();
+    final verified = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const FaceCheckInScreen(isCheckOut: true),
+      ),
+    );
+    if (verified == true) {
       _fetchRecords();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Check-out successful'), backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Check-out failed: $e'), backgroundColor: Colors.red),
         );
       }
     }

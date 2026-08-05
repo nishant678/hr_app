@@ -8,7 +8,7 @@ abstract class AttendanceApiRepository {
     String? locationAddress,
     Map<String, String>? deviceInfo,
   });
-  Future<AttendanceModel> checkOut();
+  Future<AttendanceModel> checkOut({String? faceImagePath});
   Future<List<AttendanceModel>> getMyAttendance();
   Future<List<AttendanceModel>> getTodayAttendance();
   Future<List<AttendanceModel>> getCompanyAttendance();

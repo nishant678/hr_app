@@ -6,6 +6,7 @@ import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/configs/theme/app_text_styles.dart';
 import 'package:hr_app/model/user/user_profile_model.dart';
 import 'package:hr_app/repository/profile_api/profile_http_api_repository.dart';
+import 'package:hr_app/repository/face_verify_api/face_verify_http_api_repository.dart';
 import 'package:hr_app/utils/app_url.dart';
 import 'package:hr_app/view/profile/selfie_capture_screen.dart';
 
@@ -20,6 +21,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _profileRepo = ProfileHttpApiRepository();
+  final _faceVerifyRepo = FaceVerifyHttpApiRepository();
   UserProfileModel? _profile;
   bool _loading = false;
   String? _error;
@@ -215,6 +217,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     try {
       final updated = await _profileRepo.updateProfilePhoto(path);
+      try {
+        await _faceVerifyRepo.registerFace(path);
+      } catch (_) {
+        // face registration is best-effort; server re-registers on next check-in
+      }
       if (mounted) {
         setState(() => _profile = updated);
         ScaffoldMessenger.of(context).showSnackBar(

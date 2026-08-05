@@ -53,10 +53,25 @@ class AttendanceHttpApiRepository implements AttendanceApiRepository {
   }
 
   @override
-  Future<AttendanceModel> checkOut() async {
+  Future<AttendanceModel> checkOut({String? faceImagePath}) async {
     final now = DateTime.now();
     final checkOutTime = DateFormat('HH:mm:ss').format(now);
     final date = DateFormat('yyyy-MM-dd').format(now);
+    if (faceImagePath != null) {
+      final response = await _apiServices.multipartPostApi(
+        AppUrl.attendanceCheckOutEndPoint,
+        filePath: faceImagePath,
+        fileField: 'faceImage',
+        fields: {
+          'checkOutTime': checkOutTime,
+          'date': date,
+        },
+      );
+      if (response is Map && response['data'] is Map) {
+        return AttendanceModel.fromJson(response['data']);
+      }
+      throw Exception('Failed to check out');
+    }
     final url = '${AppUrl.attendanceCheckOutEndPoint}?checkOutTime=$checkOutTime&date=$date';
     final response = await _apiServices.postApi(url, {});
     if (response is Map && response['data'] is Map) {

@@ -11,6 +11,7 @@ import 'package:hr_app/configs/components/shimmer_loading.dart';
 import 'package:hr_app/configs/theme/app_colors.dart';
 import 'package:hr_app/configs/theme/app_dimensions.dart';
 import 'package:hr_app/repository/attendance_api/attendance_http_api_repository.dart';
+import 'package:hr_app/repository/face_verify_api/face_verify_http_api_repository.dart';
 import 'package:hr_app/services/face_attendance/face_attendance_validator.dart';
 import 'package:hr_app/services/face_attendance/ml_camera_input.dart';
 import 'package:image/image.dart' as img;
@@ -19,12 +20,14 @@ class FaceCheckInScreen extends StatefulWidget {
   final double? latitude;
   final double? longitude;
   final String? locationAddress;
+  final bool isCheckOut;
 
   const FaceCheckInScreen({
     super.key,
     this.latitude,
     this.longitude,
     this.locationAddress,
+    this.isCheckOut = false,
   });
 
   @override
@@ -44,6 +47,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
   );
 
   final _attendanceRepo = AttendanceHttpApiRepository();
+  final _faceVerifyRepo = FaceVerifyHttpApiRepository();
 
   CameraController? _controller;
   CameraDescription? _cameraDesc;
@@ -286,23 +290,43 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
         return;
       }
 
-      // Face validated — call check-in API
-      setState(() => _hint = 'Check-in ho raha hai… / Checking in…');
+      // Face validated — ensure the face is registered, then check-in/out
+      setState(() => _hint = widget.isCheckOut
+          ? 'Check-out ho raha hai… / Checking out…'
+          : 'Check-in ho raha hai… / Checking in…');
 
       try {
-        await _attendanceRepo.checkIn(
-          faceImagePath: capturedPath,
-          latitude: widget.latitude,
-          longitude: widget.longitude,
-          locationAddress: widget.locationAddress,
-          deviceInfo: _deviceInfoMap(),
-        );
+        bool registered = false;
+        try {
+          registered = await _faceVerifyRepo.isFaceRegistered();
+        } catch (_) {
+          registered = false;
+        }
+        if (!registered) {
+          try {
+            await _faceVerifyRepo.registerFace(capturedPath);
+          } catch (_) {
+            // registration is best-effort; verify may still pass if already known
+          }
+        }
+
+        if (widget.isCheckOut) {
+          await _attendanceRepo.checkOut(faceImagePath: capturedPath);
+        } else {
+          await _attendanceRepo.checkIn(
+            faceImagePath: capturedPath,
+            latitude: widget.latitude,
+            longitude: widget.longitude,
+            locationAddress: widget.locationAddress,
+            deviceInfo: _deviceInfoMap(),
+          );
+        }
         _completed = true;
         if (mounted) Navigator.of(context).pop(true);
       } catch (e) {
         setState(() {
           _hint =
-              'Check-in failed: $e\nCapture se dobara try karein / Tap Capture to retry';
+              '${widget.isCheckOut ? 'Check-out' : 'Check-in'} failed: $e\nCapture se dobara try karein / Tap Capture to retry';
           _capturing = false;
         });
         await controller.startImageStream(_onCameraImage);
@@ -477,7 +501,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: const Text('Face Check-in'),
+        title: Text(widget.isCheckOut ? 'Face Check-out' : 'Face Check-in'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(false),

@@ -17,6 +17,8 @@ class AppUrl {
   static String profileEndPoint = '$baseUrl/api/employee/profile';
   static String profilePhotoUpdateEndPoint =
       '$baseUrl/api/employee/profile/photo';
+  static String faceStatusEndPoint = '$baseUrl/api/face/status';
+  static String faceRegisterEndPoint = '$baseUrl/api/face/register';
 
   static String resolve(String? path) {
     if (path == null || path.isEmpty) return '';
