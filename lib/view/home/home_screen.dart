@@ -483,22 +483,26 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
     return Row(
-      children: cards.map((c) => Expanded(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          child: _quickCard(
-            circularIcon: true,
-            icon: c.icon,
-            iconBg: c.iconBg,
-            iconColor: c.iconColor,
-            label: c.label,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => c.screen),
+      children: cards
+          .map(
+            (c) => Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: _quickCard(
+                  circularIcon: true,
+                  icon: c.icon,
+                  iconBg: c.iconBg,
+                  iconColor: c.iconColor,
+                  label: c.label,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(builder: (_) => c.screen),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 
