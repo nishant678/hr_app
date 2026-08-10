@@ -1,5 +1,5 @@
 class AppUrl {
-  static var baseUrl = 'http://10.104.70.61:8080';
+  static var baseUrl = 'http://10.20.190.61:8080';
   // static var baseUrl = 'https://hr-spring-backend.onrender.com';
   static var loginEndPoint = '$baseUrl/api/auth/login';
   static var leavesEndPoint = '$baseUrl/api/leaves';

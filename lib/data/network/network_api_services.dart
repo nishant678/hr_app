@@ -46,15 +46,8 @@ class NetworkApiService implements BaseApiServices {
       },
     ));
     _dio.interceptors.add(_LogInterceptor());
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        final token = SessionController.token;
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-    ));
+    _dio.interceptors.add(_AuthInterceptor());
+    _dio.interceptors.add(_RefreshTokenInterceptor(_dio));
   }
 
   @override
@@ -148,6 +141,73 @@ class NetworkApiService implements BaseApiServices {
         return FetchDataException('Request cancelled');
       default:
         return NoInternetException('No Internet Connection');
+    }
+  }
+}
+
+class _AuthInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final token = SessionController.token;
+    if (token != null && token.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+}
+
+class _RefreshTokenInterceptor extends Interceptor {
+  final Dio dio;
+  bool _refreshing = false;
+
+  _RefreshTokenInterceptor(this.dio);
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (err.response?.statusCode != 401 || _refreshing) {
+      handler.next(err);
+      return;
+    }
+
+    final rt = SessionController.refreshToken;
+    if (rt == null || rt.isEmpty) {
+      handler.next(err);
+      return;
+    }
+
+    _refreshing = true;
+    try {
+      final baseUrl = err.requestOptions.baseUrl.isNotEmpty
+          ? err.requestOptions.baseUrl
+          : '${err.requestOptions.uri.scheme}://${err.requestOptions.uri.host}:${err.requestOptions.uri.port}';
+      final refreshDio = Dio(BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+      ));
+      final refreshResp = await refreshDio.post(
+        '/api/auth/refresh',
+        data: {'refreshToken': rt},
+      );
+
+      if (refreshResp.statusCode == 200 && refreshResp.data is Map) {
+        final data = refreshResp.data;
+        final newAccess = data['token']?.toString() ?? '';
+        final newRefresh = data['refreshToken']?.toString() ?? '';
+        final newExpires = data['expiresAt'] is int ? data['expiresAt'] as int : 0;
+        await SessionController().updateTokens(newAccess, newRefresh, newExpires);
+
+        err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
+        final response = await dio.fetch(err.requestOptions);
+        handler.resolve(response);
+      } else {
+        await SessionController().clearSession();
+        handler.next(err);
+      }
+    } catch (_) {
+      await SessionController().clearSession();
+      handler.next(err);
+    } finally {
+      _refreshing = false;
     }
   }
 }
