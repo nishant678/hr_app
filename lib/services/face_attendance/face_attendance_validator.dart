@@ -1,118 +1,73 @@
 import 'dart:ui' show Size;
 
-import 'package:flutter/foundation.dart';
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:face_detection_tflite/face_detection_tflite.dart';
 
-/// Result of ML Kit–based checks for attendance (single face, pose, eyes, no-mask heuristic).
 class FaceCheckResult {
   const FaceCheckResult({required this.ok, required this.message});
-
   final bool ok;
   final String message;
 
   static const FaceCheckResult noFace = FaceCheckResult(
-    ok: false,
-    message:
-        'Chehra camera ke saamne laayein / Bring your face in front of the camera',
-  );
-
+      ok: false, message: 'Chehra camera ke saamne laayein / Bring your face in front');
   static const FaceCheckResult multipleFaces = FaceCheckResult(
-    ok: false,
-    message: 'Sirf ek chehra hona chahiye / Only one face should be visible',
-  );
+      ok: false, message: 'Sirf ek chehra hona chahiye / Only one face');
 }
 
 class FaceAttendanceValidator {
   FaceAttendanceValidator._();
 
-  @visibleForTesting
+  static const double _minFaceRatio = 0.06, _maxFaceRatio = 0.65;
+  static const double _maxYaw = 24, _maxRoll = 20;
+  static const double _minEyeOpen = 0.72;
+
   static bool looksLikeMaskCovered({
     required bool hasNoseLandmark,
     required bool hasMouthLandmark,
     required int contourScore,
   }) {
-    return !hasNoseLandmark || !hasMouthLandmark || contourScore < 32;
+    return !hasNoseLandmark || !hasMouthLandmark || contourScore < 30;
   }
 
-  /// Validates [face] for check-in. Uses landmarks, classification, contours where available.
   static FaceCheckResult validate(Face face, Size imageSize) {
     final frameArea = imageSize.width * imageSize.height;
     final faceArea = face.boundingBox.width * face.boundingBox.height;
     if (frameArea <= 0) return FaceCheckResult.noFace;
 
     final ratio = faceArea / frameArea;
-    if (ratio < 0.06) {
-      return const FaceCheckResult(
-        ok: false,
-        message: 'Thoda paas aayein / Move a bit closer to the camera',
-      );
+    if (ratio < _minFaceRatio) {
+      return const FaceCheckResult(ok: false, message: 'Thoda paas aayein / Move closer');
     }
-    if (ratio > 0.72) {
-      return const FaceCheckResult(
-        ok: false,
-        message: 'Thoda door ho jaayein / Move slightly back from the camera',
-      );
+    if (ratio > _maxFaceRatio) {
+      return const FaceCheckResult(ok: false, message: 'Thoda door jaayein / Move back');
     }
 
     final y = face.headEulerAngleY;
     final z = face.headEulerAngleZ;
-    if (y != null && y.abs() > 24) {
-      return const FaceCheckResult(
-        ok: false,
-        message: 'Seedha chehra dikhayein / Look straight at the camera',
-      );
+    if (y != null && y.abs() > _maxYaw) {
+      return const FaceCheckResult(ok: false, message: 'Seedha dekhein / Look straight');
     }
-    if (z != null && z.abs() > 20) {
-      return const FaceCheckResult(
-        ok: false,
-        message: 'Sar seedha rakhein / Keep your head straight',
-      );
+    if (z != null && z.abs() > _maxRoll) {
+      return const FaceCheckResult(ok: false, message: 'Sar seedha rakhein / Head straight');
     }
 
-    final nose = face.landmarks[FaceLandmarkType.noseBase];
-    final mouth =
-        face.landmarks[FaceLandmarkType.bottomMouth] ??
-        face.landmarks[FaceLandmarkType.leftMouth] ??
-        face.landmarks[FaceLandmarkType.rightMouth];
-
+    final nose = face.landmarks.noseTip;
+    final mouth = face.landmarks.mouth;
     int contourScore = 0;
-    void addContour(FaceContourType t) {
-      final c = face.contours[t];
-      if (c != null) contourScore += c.points.length;
+    for (final t in [FaceContourType.face, FaceContourType.noseBottom, FaceContourType.upperLipBottom, FaceContourType.lowerLipTop]) {
+      final c = face.getContour(t);
+      if (c != null) contourScore += c.length;
     }
 
-    addContour(FaceContourType.face);
-    addContour(FaceContourType.noseBridge);
-    addContour(FaceContourType.upperLipBottom);
-    addContour(FaceContourType.lowerLipTop);
-
-    if (looksLikeMaskCovered(
-      hasNoseLandmark: nose != null,
-      hasMouthLandmark: mouth != null,
-      contourScore: contourScore,
-    )) {
-      return const FaceCheckResult(
-        ok: false,
-        message:
-            'Chehra dhaka hua lag raha hai — mask / hath hataein / Face looks covered — remove mask or hand',
-      );
+    if (looksLikeMaskCovered(hasNoseLandmark: nose != null, hasMouthLandmark: mouth != null, contourScore: contourScore)) {
+      return const FaceCheckResult(ok: false, message: 'Chehra dhaka hua lag raha hai — mask / hath hataein / Face covered — remove mask');
     }
 
     final left = face.leftEyeOpenProbability;
     final right = face.rightEyeOpenProbability;
-    if (left != null && right != null) {
-      if (left < 0.72 || right < 0.72) {
-        return const FaceCheckResult(
-          ok: false,
-          message:
-              'Dono aankhein khuli rakhein; mask / dhundhla chehra avoid karein / Keep both eyes open; avoid mask or blur',
-        );
-      }
+    if (left != null && right != null && (left < _minEyeOpen || right < _minEyeOpen)) {
+      return const FaceCheckResult(ok: false, message: 'Aankhein khuli rakhein / Keep eyes open');
     }
 
-    return const FaceCheckResult(
-      ok: true,
-      message: 'Face verify ho gaya / Face verified',
-    );
+    return const FaceCheckResult(ok: true, message: 'Face verified');
   }
 }
