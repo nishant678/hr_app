@@ -83,11 +83,12 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
         minFaceSize: 0.1,
       );
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _init = false;
           _hint = 'Model load failed: $e';
         });
+      }
       return;
     }
     final cams = await availableCameras();
@@ -105,12 +106,13 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     try {
       await _controller!.initialize();
     } on CameraException catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _init = false;
           _permDenied = e.code.contains('permission');
           _hint = e.description ?? e.code;
         });
+      }
       return;
     }
     if (!mounted) return;
@@ -127,8 +129,9 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     if (!mounted || _completed || _capturing || _busy) return;
     var now = DateTime.now();
     if (_lastRun != null &&
-        now.difference(_lastRun!) < Duration(milliseconds: 420))
+        now.difference(_lastRun!) < Duration(milliseconds: 420)) {
       return;
+    }
     _lastRun = now;
     _busy = true;
     final ctrl = _controller, cam = _cameraDesc, det = _detector;
@@ -395,7 +398,7 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
   }
 
   Widget _buildBody() {
-    if (_init)
+    if (_init) {
       return AppShimmer(
         child: Center(
           child: SizedBox(
@@ -410,7 +413,8 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
           ),
         ),
       );
-    if (_permDenied)
+    }
+    if (_permDenied) {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(AppDimensions.paddingL),
@@ -420,14 +424,16 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
           ),
         ),
       );
+    }
     final c = _controller;
-    if (c == null || !c.value.isInitialized)
+    if (c == null || !c.value.isInitialized) {
       return Center(
         child: Text(
           _hint,
           style: TextStyle(color: Colors.white, fontSize: 15.sp),
         ),
       );
+    }
     return Column(
       children: [
         Expanded(
@@ -492,8 +498,9 @@ class _FaceCheckInScreenState extends State<FaceCheckInScreen> {
     if (_init ||
         _permDenied ||
         _controller == null ||
-        !_controller!.value.isInitialized)
+        !_controller!.value.isInitialized) {
       return SizedBox.shrink();
+    }
     return Container(
       padding: EdgeInsets.fromLTRB(
         24.w,

@@ -61,11 +61,12 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         minFaceSize: 0.1,
       );
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _init = false;
           _hint = 'Model load failed: $e';
         });
+      }
       return;
     }
     final cams = await availableCameras();
@@ -83,11 +84,12 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     try {
       await _controller!.initialize();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _init = false;
           _hint = 'Camera error: $e';
         });
+      }
       return;
     }
     if (!mounted) return;
@@ -104,8 +106,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     if (!mounted || _completed || _capturing || _busy) return;
     final now = DateTime.now();
     if (_lastRun != null &&
-        now.difference(_lastRun!) < const Duration(milliseconds: 420))
+        now.difference(_lastRun!) < const Duration(milliseconds: 420)) {
       return;
+    }
     _lastRun = now;
     _busy = true;
     final ctrl = _controller;
@@ -227,8 +230,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         SnackBar(content: Text('$e'), backgroundColor: Colors.red),
       );
       try {
-        if (ctrl.value.isInitialized && !ctrl.value.isStreamingImages)
+        if (ctrl.value.isInitialized && !ctrl.value.isStreamingImages) {
           await ctrl.startImageStream(_onCameraImage);
+        }
       } catch (_) {}
     }
   }
@@ -252,7 +256,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   }
 
   Widget _buildBody() {
-    if (_init)
+    if (_init) {
       return const AppShimmer(
         child: Center(
           child: SizedBox(
@@ -267,14 +271,16 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
           ),
         ),
       );
+    }
     final c = _controller;
-    if (c == null || !c.value.isInitialized)
+    if (c == null || !c.value.isInitialized) {
       return Center(
         child: Text(
           _hint,
           style: TextStyle(color: Colors.white, fontSize: 15.sp),
         ),
       );
+    }
     return Column(
       children: [
         Expanded(
@@ -336,8 +342,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   }
 
   Widget _buildBar() {
-    if (_init || _controller == null || !_controller!.value.isInitialized)
+    if (_init || _controller == null || !_controller!.value.isInitialized) {
       return const SizedBox.shrink();
+    }
     return Container(
       padding: EdgeInsets.fromLTRB(
         24.w,
